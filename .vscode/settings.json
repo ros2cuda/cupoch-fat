@@ -1,0 +1,11 @@
+{
+    "workbench.colorCustomizations": {
+        "activityBar.background": "#3B2B06",
+        "titleBar.activeBackground": "#523C08",
+        "titleBar.activeForeground": "#FEFAF1"
+    },
+    "python.autoComplete.extraPaths": [
+        "/opt/caffe/caffe-mobilenet-ssd/python/",
+        "/opt/ros/melodic/lib/python2.7/dist-packages"
+    ]
+}

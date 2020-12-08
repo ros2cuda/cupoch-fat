@@ -1,0 +1,8 @@
+add_subdirectory(cupoch)
+add_subdirectory(tools)
+if (BUILD_UNIT_TESTS)
+    add_subdirectory(tests)
+endif ()
+if (BUILD_PYTHON_MODULE)
+    add_subdirectory(python)
+endif ()
