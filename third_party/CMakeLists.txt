@@ -336,6 +336,8 @@ list(APPEND 3RDPARTY_LIBRARIES
 install(TARGETS ${FLANN_LIBRARIES}
                 ${fmt_LIBRARIES}
                 ${rmm_LIBRARIES}
+                ${liblzf_LIBRARIES}
+                ${rply_LIBRARIES}
         EXPORT ${PROJECT_NAME}3rdTargets
         RUNTIME DESTINATION ${CUPOCH_INSTALL_BIN_DIR}
         LIBRARY DESTINATION ${CUPOCH_INSTALL_LIB_DIR}
@@ -346,6 +348,8 @@ install(DIRECTORY ${flann_INCLUDE_DIRS}
                     ${fmt_INCLUDE_DIRS}
                     ${cnmem_INCLUDE_DIRS}
                     ${rmm_INCLUDE_DIRS}
+                    ${liblzf_INCLUDE_DIRS}
+                    ${rply_INCLUDE_DIRS}
     DESTINATION ${CUPOCH_INSTALL_INCLUDE_DIR}/../
     # FILES_MATCHING
     #     PATTERN "*.h"

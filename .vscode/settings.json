@@ -104,6 +104,9 @@
         "random": "cpp",
         "set": "cpp",
         "string": "cpp",
-        "variant": "cpp"
+        "variant": "cpp",
+        "dense_hash_map": "c",
+        "sparse_hash_map": "c",
+        "sparsetable": "c"
     }
 }
