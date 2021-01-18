@@ -69,22 +69,22 @@ void bind_def(LineSetT& lineset) {
                  })
             .def_static(
                     "create_from_point_cloud_correspondences",
-                    &geometry::LineSet<Dim>::CreateFromPointCloudCorrespondences,
+                    &geometry::LineSet<Dim>::template CreateFromPointCloudCorrespondences<Dim>,
                     "Factory function to create a LineSet from two "
                     "pointclouds and a correspondence set.",
                     "cloud0"_a, "cloud1"_a, "correspondences"_a)
             .def_static("create_from_oriented_bounding_box",
-                        &geometry::LineSet<Dim>::CreateFromOrientedBoundingBox,
+                        &geometry::LineSet<Dim>::template CreateFromOrientedBoundingBox<Dim>,
                         "Factory function to create a LineSet from an "
                         "OrientedBoundingBox.",
                         "box"_a)
             .def_static("create_from_axis_aligned_bounding_box",
-                        &geometry::LineSet<Dim>::CreateFromAxisAlignedBoundingBox,
+                        &geometry::LineSet<Dim>::template CreateFromAxisAlignedBoundingBox<Dim>,
                         "Factory function to create a LineSet from an "
                         "AxisAlignedBoundingBox.",
                         "box"_a)
             .def_static("create_from_triangle_mesh",
-                        &geometry::LineSet<Dim>::CreateFromTriangleMesh,
+                        &geometry::LineSet<Dim>::template CreateFromTriangleMesh<Dim>,
                         "Factory function to create a LineSet from edges of a "
                         "triangle mesh.",
                         "mesh"_a)
@@ -125,7 +125,6 @@ void bind_def(LineSetT& lineset) {
                  });
 }
 
-template <class LineSetT>
 void doc_inject(py::module &m, const std::string& name) {
     docstring::ClassMethodDocInject(m, name, "has_colors");
     docstring::ClassMethodDocInject(m, name, "has_lines");
@@ -153,22 +152,22 @@ void doc_inject(py::module &m, const std::string& name) {
 
 void pybind_lineset(py::module &m) {
     py::class_<geometry::LineSet<3>, PyGeometry3D<geometry::LineSet<3>>,
-               std::shared_ptr<geometry::LineSet<3>>, geometry::GeometryBase<3>>
+               std::shared_ptr<geometry::LineSet<3>>, geometry::GeometryBase3D>
             lineset(m, "LineSet",
                     "LineSet define a sets of lines in 3D. A typical "
                     "application is to display the point cloud correspondence "
                     "pairs.");
     bind_def<decltype(lineset), 3>(lineset);
-    doc_inject<decltype(lineset)>(m, "LineSet");
+    doc_inject(m, "LineSet");
 
     py::class_<geometry::LineSet<2>, PyGeometry2D<geometry::LineSet<2>>,
-               std::shared_ptr<geometry::LineSet<2>>, geometry::GeometryBase<2>>
+               std::shared_ptr<geometry::LineSet<2>>, geometry::GeometryBase2D>
             lineset2d(m, "LineSet2D",
                       "LineSet define a sets of lines in 2D. A typical "
                       "application is to display the point cloud correspondence "
                       "pairs.");
     bind_def<decltype(lineset2d), 2>(lineset2d);
-    doc_inject<decltype(lineset2d)>(m, "LineSet2D");
+    doc_inject(m, "LineSet2D");
 }
 
 void pybind_lineset_methods(py::module &m) {}

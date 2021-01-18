@@ -79,7 +79,7 @@ struct devide_voxel_color_functor {
     }
 };
 
-class VoxelGrid : public GeometryBase<3> {
+class VoxelGrid : public GeometryBase3D {
 public:
     VoxelGrid();
     VoxelGrid(const VoxelGrid &src_voxel_grid);
@@ -96,7 +96,7 @@ public:
     Eigen::Vector3f GetMinBound() const override;
     Eigen::Vector3f GetMaxBound() const override;
     Eigen::Vector3f GetCenter() const override;
-    AxisAlignedBoundingBox GetAxisAlignedBoundingBox() const override;
+    AxisAlignedBoundingBox<3> GetAxisAlignedBoundingBox() const override;
     OrientedBoundingBox GetOrientedBoundingBox() const;
     VoxelGrid &Transform(const Eigen::Matrix4f &transformation) override;
     VoxelGrid &Translate(const Eigen::Vector3f &translation,

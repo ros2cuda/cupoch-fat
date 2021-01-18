@@ -27,12 +27,13 @@ For example, it has applications in SLAM, collision avoidance, path planning and
         * [G-DBSCAN: A GPU Accelerated Algorithm for Density-based Clustering](https://www.sciencedirect.com/science/article/pii/S1877050913003438)
     * Point cloud/Triangle mesh filtering, down sampling
     * IO
-        * Several file types(pcd, ply, stl, obj)
+        * Several file types(pcd, ply, stl, obj, urdf)
         * ROS message
     * Create Point Cloud from Laser Scan or RGBD Image
     * Visual Odometry
         * [Real-time visual odometry from dense RGB-D images](https://ieeexplore.ieee.org/document/6130321)
         * [Robust Odometry Estimation for RGB-D Cameras](https://ieeexplore.ieee.org/document/6631104)
+    * Kinect Fusion
     * Collision checking
     * Occupancy grid
     * Distance transform
@@ -69,7 +70,7 @@ Please set up Jetson using [jetcard](https://github.com/NVIDIA-AI-IOT/jetcard) a
 
 ```
 sudo apt-get install libxinerama-dev libxcursor-dev libglu1-mesa-dev
-pip3 install https://github.com/neka-nat/cupoch/releases/download/v0.1.3/cupoch-0.1.3.0-cp36-cp36m-linux_aarch64.whl
+pip3 install https://github.com/neka-nat/cupoch/releases/download/v0.1.7/cupoch-0.1.7.0-cp36-cp36m-linux_aarch64.whl
 ```
 
 Or you can compile it from source.
@@ -115,6 +116,10 @@ python benchmarks.py
 
 ![og](https://raw.githubusercontent.com/neka-nat/cupoch/master/docs/_static/og_gpu.gif)
 
+### Kinect fusion with intel realsense D435
+
+![kf](https://raw.githubusercontent.com/neka-nat/cupoch/master/docs/_static/kinfu.gif)
+
 ### Fast Global Registration
 
 ![fgr](https://raw.githubusercontent.com/neka-nat/cupoch/master/docs/_static/fgr.png)
@@ -147,9 +152,9 @@ python realsense_rgbd_odometry_node.py
 
 ## Visualization
 
-| Point Cloud | Triangle Mesh |
-|-------------|---------------|
-| <img src="https://raw.githubusercontent.com/neka-nat/cupoch/master/docs/_static/pointcloud.png" width="640"> |  <img src="https://raw.githubusercontent.com/neka-nat/cupoch/master/docs/_static/trianglemesh.png" width="640"> |
+| Point Cloud | Triangle Mesh | Kinematics |
+|-------------|---------------|------------|
+| <img src="https://raw.githubusercontent.com/neka-nat/cupoch/master/docs/_static/pointcloud.png" width="640"> |  <img src="https://raw.githubusercontent.com/neka-nat/cupoch/master/docs/_static/trianglemesh.png" width="640"> | <img src="https://raw.githubusercontent.com/neka-nat/cupoch/master/docs/_static/kinematics.png" width="640"> |
 
 | Voxel Grid | Occupancy Grid | Distance Transform |
 |------------|----------------|--------------------|

@@ -26,9 +26,10 @@
 namespace cupoch {
 namespace geometry {
 
+template <int Dim>
 class AxisAlignedBoundingBox;
 
-class LaserScanBuffer : public GeometryBase<3> {
+class LaserScanBuffer : public GeometryBase3D {
 public:
     LaserScanBuffer(int num_steps, int num_max_scans = 10, float min_angle = -M_PI, float max_angle = M_PI);
     ~LaserScanBuffer();
@@ -42,7 +43,7 @@ public:
     Eigen::Vector3f GetMinBound() const override;
     Eigen::Vector3f GetMaxBound() const override;
     Eigen::Vector3f GetCenter() const override;
-    AxisAlignedBoundingBox GetAxisAlignedBoundingBox() const override;
+    AxisAlignedBoundingBox<3> GetAxisAlignedBoundingBox() const override;
     LaserScanBuffer &Transform(const Eigen::Matrix4f &transformation) override;
     LaserScanBuffer &Translate(const Eigen::Vector3f &translation,
                                bool relative = true) override;
@@ -56,9 +57,9 @@ public:
     LaserScanBuffer &AddRanges(const utility::device_vector<float>& ranges,
                                const Eigen::Matrix4f& transformation = Eigen::Matrix4f::Identity(),
                                const utility::device_vector<float>& intensities = utility::device_vector<float>());
-    LaserScanBuffer &AddRanges(const thrust::host_vector<float>& ranges,
+    LaserScanBuffer &AddRanges(const utility::pinned_host_vector<float>& ranges,
                                const Eigen::Matrix4f& transformation = Eigen::Matrix4f::Identity(),
-                               const thrust::host_vector<float>& intensities = thrust::host_vector<float>());
+                               const utility::pinned_host_vector<float>& intensities = utility::pinned_host_vector<float>());
 
     std::shared_ptr<LaserScanBuffer> RangeFilter(float min_range, float max_range) const;
     std::shared_ptr<LaserScanBuffer> ScanShadowsFilter(float min_angle,

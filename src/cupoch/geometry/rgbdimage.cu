@@ -48,32 +48,6 @@ Eigen::Vector2f RGBDImage::GetCenter() const {
                            color_.height_ / 2);
 }
 
-AxisAlignedBoundingBox RGBDImage::GetAxisAlignedBoundingBox() const {
-    utility::LogError("RGBDImage::GetAxisAlignedBoundingBox is not supported");
-    return AxisAlignedBoundingBox();
-}
-
-RGBDImage &RGBDImage::Transform(const Eigen::Matrix3f &transformation) {
-    utility::LogError("RGBDImage::Transform is not supported");
-    return *this;
-}
-
-RGBDImage &RGBDImage::Translate(const Eigen::Vector2f &translation,
-                                bool relative) {
-    utility::LogError("RGBDImage::Translate is not supported");
-    return *this;
-}
-
-RGBDImage &RGBDImage::Scale(const float scale, bool center) {
-    utility::LogError("RGBDImage::Scale is not supported");
-    return *this;
-}
-
-RGBDImage &RGBDImage::Rotate(const Eigen::Matrix2f &R, bool center) {
-    utility::LogError("RGBDImage::Rotate is not supported");
-    return *this;
-}
-
 RGBDImagePyramid RGBDImage::FilterPyramid(
         const RGBDImagePyramid &rgbd_image_pyramid, Image::FilterType type) {
     RGBDImagePyramid rgbd_image_pyramid_filtered;
@@ -90,20 +64,18 @@ RGBDImagePyramid RGBDImage::FilterPyramid(
     return rgbd_image_pyramid_filtered;
 }
 
-RGBDImagePyramid RGBDImage::BilateralFilterPyramid(const RGBDImagePyramid &rgbd_image_pyramid,
-                                                   int diameter,
-                                                   float sigma_color,
-                                                   float sigma_space) {
+RGBDImagePyramid RGBDImage::BilateralFilterPyramidDepth(const RGBDImagePyramid &rgbd_image_pyramid,
+                                                        int diameter,
+                                                        float sigma_depth,
+                                                        float sigma_space) {
     RGBDImagePyramid rgbd_image_pyramid_filtered;
     int num_of_levels = (int)rgbd_image_pyramid.size();
     for (int level = 0; level < num_of_levels; level++) {
-        auto color_level = rgbd_image_pyramid[level]->color_;
-        auto depth_level = rgbd_image_pyramid[level]->depth_;
-        auto color_level_filtered = color_level.BilateralFilter(diameter, sigma_color, sigma_space);
-        auto depth_level_filtered = depth_level.BilateralFilter(diameter, sigma_color, sigma_space);
+        const auto& depth_level = rgbd_image_pyramid[level]->depth_;
+        auto depth_level_filtered = depth_level.BilateralFilter(diameter, sigma_depth, sigma_space);
         auto rgbd_image_level_filtered = std::make_shared<RGBDImage>(
-                RGBDImage(*color_level_filtered, *depth_level_filtered));
-        rgbd_image_pyramid_filtered.push_back(rgbd_image_level_filtered);
+                RGBDImage(rgbd_image_pyramid[level]->color_, *depth_level_filtered));
+        rgbd_image_pyramid_filtered.push_back(std::move(rgbd_image_level_filtered));
     }
     return rgbd_image_pyramid_filtered;
 }

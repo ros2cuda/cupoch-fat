@@ -34,13 +34,14 @@ namespace geometry {
 
 class PointCloud;
 class OrientedBoundingBox;
+template<int Dim>
 class AxisAlignedBoundingBox;
 class TriangleMesh;
 
 static const Eigen::Vector3f DEFAULT_LINE_COLOR = Eigen::Vector3f::Ones();
 
 template <int Dim>
-class LineSet : public GeometryBase<Dim> {
+class LineSet : public GeometryBaseXD<Dim> {
 public:
     LineSet();
     LineSet(Geometry::GeometryType type);
@@ -70,9 +71,9 @@ public:
     Eigen::Matrix<float, Dim, 1> GetMinBound() const override;
     Eigen::Matrix<float, Dim, 1> GetMaxBound() const override;
     Eigen::Matrix<float, Dim, 1> GetCenter() const override;
-    AxisAlignedBoundingBox GetAxisAlignedBoundingBox() const override;
+    AxisAlignedBoundingBox<Dim> GetAxisAlignedBoundingBox() const override;
     LineSet<Dim> &Transform(const Eigen::Matrix<float, Dim + 1, Dim + 1>
-                                    &transformation) override;
+                            &transformation) override;
     LineSet<Dim> &Translate(const Eigen::Matrix<float, Dim, 1> &translation,
                             bool relative = true) override;
     LineSet<Dim> &Scale(const float scale, bool center = true) override;
@@ -104,19 +105,23 @@ public:
     /// Factory function to create a LineSet from two PointClouds
     /// (\param cloud0, \param cloud1) and a correspondence set
     /// \param correspondences.
+    template <int D = Dim, std::enable_if_t<(D == 3 || D == 2)>* = nullptr>
     static std::shared_ptr<LineSet<Dim>> CreateFromPointCloudCorrespondences(
             const PointCloud &cloud0,
             const PointCloud &cloud1,
             const utility::device_vector<thrust::pair<int, int>>
                     &correspondences);
 
+    template <int D = Dim, std::enable_if_t<(D == 3 || D == 2)>* = nullptr>
     static std::shared_ptr<LineSet> CreateFromOrientedBoundingBox(
             const OrientedBoundingBox &box);
+    template <int D = Dim, std::enable_if_t<(D == 3 || D == 2)>* = nullptr>
     static std::shared_ptr<LineSet> CreateFromAxisAlignedBoundingBox(
-            const AxisAlignedBoundingBox &box);
+            const AxisAlignedBoundingBox<Dim> &box);
 
     /// Factory function to create a LineSet from edges of a triangle mesh
     /// \param mesh.
+    template <int D = Dim, std::enable_if_t<(D == 3 || D == 2)>* = nullptr>
     static std::shared_ptr<LineSet<Dim>> CreateFromTriangleMesh(
             const TriangleMesh &mesh);
 

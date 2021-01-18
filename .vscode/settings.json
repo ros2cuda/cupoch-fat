@@ -107,6 +107,12 @@
         "variant": "cpp",
         "dense_hash_map": "c",
         "sparse_hash_map": "c",
-        "sparsetable": "c"
+        "sparsetable": "c",
+        "superlusupport": "cpp",
+        "alignedvector3": "cpp",
+        "autodiff": "cpp",
+        "bvh": "cpp",
+        "eulerangles": "cpp",
+        "fft": "cpp"
     }
 }

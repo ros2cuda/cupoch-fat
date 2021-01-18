@@ -7,6 +7,7 @@ add_subdirectory(geometry)
 add_subdirectory(integration)
 add_subdirectory(io)
 add_subdirectory(kinematics)
+add_subdirectory(kinfu)
 add_subdirectory(odometry)
 add_subdirectory(planning)
 add_subdirectory(registration)
@@ -19,6 +20,8 @@ install(TARGETS ${PROJECT_NAME}_camera
                 ${PROJECT_NAME}_geometry
                 ${PROJECT_NAME}_integration
                 ${PROJECT_NAME}_io
+                ${PROJECT_NAME}_kinematics
+                ${PROJECT_NAME}_kinfu
                 ${PROJECT_NAME}_odometry
                 ${PROJECT_NAME}_planning
                 ${PROJECT_NAME}_registration

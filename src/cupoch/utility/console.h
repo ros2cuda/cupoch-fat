@@ -73,8 +73,9 @@ public:
     void VFatal(const char *format, fmt::format_args args) {
         if (verbosity_level_ >= VerbosityLevel::Fatal) {
             ChangeConsoleColor(TextColor::Red, 1);
-            fmt::print("[Cupoc FATAL] ");
+            fmt::print("[Cupoch FATAL] ");
             fmt::vprint(format, args);
+            fmt::print("\n");
             ResetConsoleColor();
             exit(-1);
         }
@@ -83,8 +84,9 @@ public:
     void VError(const char *format, fmt::format_args args) {
         if (verbosity_level_ >= VerbosityLevel::Error) {
             ChangeConsoleColor(TextColor::Red, 1);
-            fmt::print("[Cupoc ERROR] ");
+            fmt::print("[Cupoch ERROR] ");
             fmt::vprint(format, args);
+            fmt::print("\n");
             ResetConsoleColor();
         }
     }
@@ -92,23 +94,26 @@ public:
     void VWarning(const char *format, fmt::format_args args) {
         if (verbosity_level_ >= VerbosityLevel::Warning) {
             ChangeConsoleColor(TextColor::Yellow, 1);
-            fmt::print("[Cupoc WARNING] ");
+            fmt::print("[Cupoch WARNING] ");
             fmt::vprint(format, args);
+            fmt::print("\n");
             ResetConsoleColor();
         }
     }
 
     void VInfo(const char *format, fmt::format_args args) {
         if (verbosity_level_ >= VerbosityLevel::Info) {
-            fmt::print("[Cupoc INFO] ");
+            fmt::print("[Cupoch INFO] ");
             fmt::vprint(format, args);
+            fmt::print("\n");
         }
     }
 
     void VDebug(const char *format, fmt::format_args args) {
         if (verbosity_level_ >= VerbosityLevel::Debug) {
-            fmt::print("[Cupoc DEBUG] ");
+            fmt::print("[Cupoch DEBUG] ");
             fmt::vprint(format, args);
+            fmt::print("\n");
         }
     }
 
@@ -141,7 +146,7 @@ public:
     void Fatalf(const char *format, const Args &... args) {
         if (verbosity_level_ >= VerbosityLevel::Fatal) {
             ChangeConsoleColor(TextColor::Red, 1);
-            fmt::print("[Cupoc FATAL] ");
+            fmt::print("[Cupoch FATAL] ");
             fmt::printf(format, args...);
             ResetConsoleColor();
             exit(-1);
@@ -152,7 +157,7 @@ public:
     void Errorf(const char *format, const Args &... args) {
         if (verbosity_level_ >= VerbosityLevel::Error) {
             ChangeConsoleColor(TextColor::Red, 1);
-            fmt::print("[Cupoc ERROR] ");
+            fmt::print("[Cupoch ERROR] ");
             fmt::printf(format, args...);
             ResetConsoleColor();
         }
@@ -162,7 +167,7 @@ public:
     void Warningf(const char *format, const Args &... args) {
         if (verbosity_level_ >= VerbosityLevel::Warning) {
             ChangeConsoleColor(TextColor::Yellow, 1);
-            fmt::print("[Cupoc WARNING] ");
+            fmt::print("[Cupoch WARNING] ");
             fmt::printf(format, args...);
             ResetConsoleColor();
         }
@@ -171,7 +176,7 @@ public:
     template <typename... Args>
     void Infof(const char *format, const Args &... args) {
         if (verbosity_level_ >= VerbosityLevel::Info) {
-            fmt::print("[Cupoc INFO] ");
+            fmt::print("[Cupoch INFO] ");
             fmt::printf(format, args...);
         }
     }
@@ -179,7 +184,7 @@ public:
     template <typename... Args>
     void Debugf(const char *format, const Args &... args) {
         if (verbosity_level_ >= VerbosityLevel::Debug) {
-            fmt::print("[Cupoc DEBUG] ");
+            fmt::print("[Cupoch DEBUG] ");
             fmt::printf(format, args...);
         }
     }

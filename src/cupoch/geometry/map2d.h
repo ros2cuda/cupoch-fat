@@ -24,7 +24,7 @@
 namespace cupoch {
 namespace geometry {
 
-class Map2D : public GeometryBase<2> {
+class Map2D : public GeometryBase2D {
 public:
     Map2D();
     ~Map2D() { map_.Clear(); };
@@ -34,7 +34,7 @@ public:
     Eigen::Vector2f GetMinBound() const override;
     Eigen::Vector2f GetMaxBound() const override;
     Eigen::Vector2f GetCenter() const override;
-    AxisAlignedBoundingBox GetAxisAlignedBoundingBox() const override;
+    AxisAlignedBoundingBox<2> GetAxisAlignedBoundingBox() const override;
     Map2D &Transform(const Eigen::Matrix3f &transformation) override;
     Map2D &Translate(const Eigen::Vector2f &translation,
                          bool relative = true) override;

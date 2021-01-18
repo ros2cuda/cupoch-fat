@@ -117,8 +117,8 @@ struct linear_transform_functor {
     }
 };
 
-struct downsample_functor {
-    downsample_functor(const uint8_t *src,
+struct downsample_float_functor {
+    downsample_float_functor(const uint8_t *src,
                        int src_width,
                        uint8_t *dst,
                        int dst_width)
@@ -143,12 +143,40 @@ struct downsample_functor {
     }
 };
 
-struct filter_horizontal_functor {
-    filter_horizontal_functor(const uint8_t *src,
-                              int width,
-                              const float *kernel,
-                              int half_kernel_size,
-                              uint8_t *dst)
+struct downsample_rgb_functor {
+    downsample_rgb_functor(const uint8_t *src,
+                           int src_width,
+                           int num_of_channels,
+                           uint8_t *dst,
+                           int dst_width)
+        : src_(src), src_width_(src_width),
+        num_of_channels_(num_of_channels),
+        dst_(dst), dst_width_(dst_width){};
+    const uint8_t *src_;
+    const int src_width_;
+    const int num_of_channels_;
+    uint8_t *dst_;
+    const int dst_width_;
+    __device__ void operator()(size_t idx) {
+        const int y = idx / dst_width_;
+        const int x = idx % dst_width_;
+        for (int c = 0; c < num_of_channels_; ++c) {
+            int p1 = (int)(*(src_ + (y * 2 * src_width_ + x * 2) * 3 + c));
+            int p2 = (int)(*(src_ + (y * 2 * src_width_ + x * 2 + 1) * 3 + c));
+            int p3 = (int)(*(src_ + ((y * 2 + 1) * src_width_ + x * 2) * 3) + c);
+            int p4 = (int)(*(src_ + ((y * 2 + 1) * src_width_ + x * 2 + 1) * 3 + c));
+            uint8_t *p = dst_ + idx * 3 + c;
+            *p = (uint8_t)((p1 + p2 + p3 + p4) / 4);
+        }
+    }
+};
+
+struct filter_horizontal_float_functor {
+    filter_horizontal_float_functor(const uint8_t *src,
+                                    int width,
+                                    const float *kernel,
+                                    int half_kernel_size,
+                                    uint8_t *dst)
         : src_(src),
           width_(width),
           kernel_(kernel),
@@ -171,6 +199,41 @@ struct filter_horizontal_functor {
             temp += (*pi * kernel_[i + half_kernel_size_]);
         }
         *po = temp;
+    }
+};
+
+struct filter_horizontal_rgb_functor {
+    filter_horizontal_rgb_functor(const uint8_t *src,
+                                  int width,
+                                  int num_of_channels,
+                                  const float *kernel,
+                                  int half_kernel_size,
+                                  uint8_t *dst)
+        : src_(src),
+          width_(width),
+          num_of_channels_(num_of_channels),
+          kernel_(kernel),
+          half_kernel_size_(half_kernel_size),
+          dst_(dst){};
+    const uint8_t *src_;
+    const int width_;
+    const int num_of_channels_;
+    const float *kernel_;
+    const int half_kernel_size_;
+    uint8_t *dst_;
+    __device__ void operator()(size_t idx) {
+        const int y = idx / width_;
+        const int x = idx % width_;
+        for (int c = 0; c < num_of_channels_; ++c) {
+            uint8_t *po = dst_ + idx * num_of_channels_ + c;
+            float temp = 0;
+            for (int i = -half_kernel_size_; i <= half_kernel_size_; i++) {
+                int x_shift = min(max(0, x + i), width_ - 1);
+                const uint8_t *pi = src_ + (y * width_ + x_shift) * num_of_channels_ + c;
+                temp += (*pi * kernel_[i + half_kernel_size_]);
+            }
+            *po = __float2uint_ru(temp);
+        }
     }
 };
 
@@ -281,7 +344,7 @@ struct depth_to_float_functor {
 
 }  // namespace
 
-Image::Image() : GeometryBase<2>(Geometry::GeometryType::Image) {}
+Image::Image() : GeometryBaseNoTrans2D(Geometry::GeometryType::Image) {}
 Image::~Image() {}
 
 Image &Image::Clear() {
@@ -303,31 +366,6 @@ Eigen::Vector2f Image::GetMaxBound() const {
 
 Eigen::Vector2f Image::GetCenter() const {
     return Eigen::Vector2f(width_ / 2, height_ / 2);
-}
-
-AxisAlignedBoundingBox Image::GetAxisAlignedBoundingBox() const {
-    utility::LogError("Image::GetAxisAlignedBoundingBox is not supported");
-    return AxisAlignedBoundingBox();
-}
-
-Image &Image::Transform(const Eigen::Matrix3f &transformation) {
-    utility::LogError("Image::Transform is not supported");
-    return *this;
-}
-
-Image &Image::Translate(const Eigen::Vector2f &translation, bool relative) {
-    utility::LogError("Image::Translate is not supported");
-    return *this;
-}
-
-Image &Image::Scale(const float scale, bool center) {
-    utility::LogError("Image::Scale is not supported");
-    return *this;
-}
-
-Image &Image::Rotate(const Eigen::Matrix2f &R, bool center) {
-    utility::LogError("Image::Rotate is not supported");
-    return *this;
 }
 
 thrust::host_vector<uint8_t> Image::GetData() const {
@@ -388,28 +426,41 @@ Image &Image::LinearTransform(float scale, float offset /* = 0.0*/) {
 
 std::shared_ptr<Image> Image::Downsample() const {
     auto output = std::make_shared<Image>();
-    if (num_of_channels_ != 1 || bytes_per_channel_ != 4) {
+    if ((num_of_channels_ != 1 || bytes_per_channel_ != 4) &&
+        (num_of_channels_ != 3 || bytes_per_channel_ != 1)) {
         utility::LogError("[Downsample] Unsupported image format.");
         return output;
     }
     int half_width = (int)floor((float)width_ / 2.0);
     int half_height = (int)floor((float)height_ / 2.0);
-    output->Prepare(half_width, half_height, 1, 4);
+    output->Prepare(half_width, half_height, num_of_channels_, bytes_per_channel_);
 
-    downsample_functor func(thrust::raw_pointer_cast(data_.data()), width_,
-                            thrust::raw_pointer_cast(output->data_.data()),
-                            output->width_);
-    thrust::for_each(thrust::make_counting_iterator<size_t>(0),
-                     thrust::make_counting_iterator<size_t>(output->width_ *
-                                                            output->height_),
-                     func);
+    if (num_of_channels_ == 1) {
+        downsample_float_functor func(thrust::raw_pointer_cast(data_.data()), width_,
+                                      thrust::raw_pointer_cast(output->data_.data()),
+                                      output->width_);
+        thrust::for_each(thrust::make_counting_iterator<size_t>(0),
+                         thrust::make_counting_iterator<size_t>(output->width_ *
+                                                                output->height_),
+                         func);
+    } else {
+        downsample_rgb_functor func(thrust::raw_pointer_cast(data_.data()), width_,
+                                    num_of_channels_,
+                                    thrust::raw_pointer_cast(output->data_.data()),
+                                    output->width_);
+        thrust::for_each(thrust::make_counting_iterator<size_t>(0),
+                         thrust::make_counting_iterator<size_t>(output->width_ *
+                                                                output->height_),
+                         func);
+    }
     return output;
 }
 
 std::shared_ptr<Image> Image::FilterHorizontal(
         const utility::device_vector<float> &kernel) const {
     auto output = std::make_shared<Image>();
-    if (num_of_channels_ != 1 || bytes_per_channel_ != 4 ||
+    if ((num_of_channels_ != 1 || bytes_per_channel_ != 4) &&
+        (num_of_channels_ != 3 || bytes_per_channel_ != 1) ||
         kernel.size() % 2 != 1) {
         utility::LogError(
                 "[FilterHorizontal] Unsupported image format or kernel "
@@ -419,13 +470,24 @@ std::shared_ptr<Image> Image::FilterHorizontal(
 
     const int half_kernel_size = (int)(floor((float)kernel.size() / 2.0));
 
-    filter_horizontal_functor func(
-            thrust::raw_pointer_cast(data_.data()), width_,
-            thrust::raw_pointer_cast(kernel.data()), half_kernel_size,
-            thrust::raw_pointer_cast(output->data_.data()));
-    thrust::for_each(thrust::make_counting_iterator<size_t>(0),
-                     thrust::make_counting_iterator<size_t>(width_ * height_),
-                     func);
+    if (num_of_channels_ == 1) {
+        filter_horizontal_float_functor func(
+                thrust::raw_pointer_cast(data_.data()), width_,
+                thrust::raw_pointer_cast(kernel.data()), half_kernel_size,
+                thrust::raw_pointer_cast(output->data_.data()));
+        thrust::for_each(thrust::make_counting_iterator<size_t>(0),
+                         thrust::make_counting_iterator<size_t>(width_ * height_),
+                         func);
+    } else {
+        filter_horizontal_rgb_functor func(
+                thrust::raw_pointer_cast(data_.data()), width_,
+                num_of_channels_,
+                thrust::raw_pointer_cast(kernel.data()), half_kernel_size,
+                thrust::raw_pointer_cast(output->data_.data()));
+        thrust::for_each(thrust::make_counting_iterator<size_t>(0),
+                         thrust::make_counting_iterator<size_t>(width_ * height_),
+                         func);
+    }
     return output;
 }
 

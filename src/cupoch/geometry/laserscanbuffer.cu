@@ -21,6 +21,7 @@
 #include "cupoch/geometry/laserscanbuffer.h"
 #include "cupoch/geometry/boundingvolume.h"
 
+#include "cupoch/utility/platform.h"
 #include "cupoch/utility/console.h"
 
 namespace cupoch {
@@ -106,14 +107,14 @@ struct apply_scan_shadow_filter_functor {
 }
 
 LaserScanBuffer::LaserScanBuffer(int num_steps, int num_max_scans, float min_angle, float max_angle)
-: GeometryBase<3>(Geometry::GeometryType::LaserScanBuffer),
+: GeometryBase3D(Geometry::GeometryType::LaserScanBuffer),
 num_steps_(num_steps), num_max_scans_(num_max_scans),
 min_angle_(min_angle), max_angle_(max_angle) {}
 
 LaserScanBuffer::~LaserScanBuffer() {};
 
 LaserScanBuffer::LaserScanBuffer(const LaserScanBuffer& other)
-: GeometryBase<3>(Geometry::GeometryType::LaserScanBuffer),
+: GeometryBase3D(Geometry::GeometryType::LaserScanBuffer),
 ranges_(other.ranges_), intensities_(other.intensities_),
 top_(other.top_), bottom_(other.bottom_),
 num_steps_(other.num_steps_), num_max_scans_(other.num_max_scans_),
@@ -189,9 +190,9 @@ Eigen::Vector3f LaserScanBuffer::GetCenter() const {
     return Eigen::Vector3f::Zero();
 }
 
-AxisAlignedBoundingBox LaserScanBuffer::GetAxisAlignedBoundingBox() const {
+AxisAlignedBoundingBox<3> LaserScanBuffer::GetAxisAlignedBoundingBox() const {
     utility::LogError("LaserScanBuffer::GetAxisAlignedBoundingBox is not supported");
-    return AxisAlignedBoundingBox();
+    return AxisAlignedBoundingBox<3>();
 }
 
 LaserScanBuffer &LaserScanBuffer::Transform(const Eigen::Matrix4f &transformation) {
@@ -254,11 +255,15 @@ LaserScanBuffer &LaserScanBuffer::AddRanges(const utility::device_vector<float>&
     return *this;
 }
 
-LaserScanBuffer &LaserScanBuffer::AddRanges(const thrust::host_vector<float>& ranges,
+LaserScanBuffer &LaserScanBuffer::AddRanges(const utility::pinned_host_vector<float>& ranges,
                                             const Eigen::Matrix4f& transformation,
-                                            const thrust::host_vector<float>& intensities) {
-    utility::device_vector<float> d_ranges = ranges;
-    utility::device_vector<float> d_intensities = intensities;
+                                            const utility::pinned_host_vector<float>& intensities) {
+    utility::device_vector<float> d_ranges(ranges.size());
+    cudaSafeCall(cudaMemcpy(thrust::raw_pointer_cast(d_ranges.data()),
+                            ranges.data(), ranges.size() * sizeof(float), cudaMemcpyHostToDevice));
+    utility::device_vector<float> d_intensities(intensities.size());
+    cudaSafeCall(cudaMemcpy(thrust::raw_pointer_cast(d_intensities.data()),
+                            intensities.data(), intensities.size() * sizeof(float), cudaMemcpyHostToDevice));
     return AddRanges(d_ranges, transformation, d_intensities);
 }
 

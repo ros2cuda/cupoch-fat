@@ -60,15 +60,33 @@ struct equal_to<Eigen::Matrix<int, Dim, 1>> {
     // clang-format on
 };
 
+
+namespace is_eigen_matrix_detail {
+    template <typename T>
+    std::true_type test(const Eigen::MatrixBase<T>*);
+    std::false_type test(...);
+}
+
+template <typename T>
+struct is_eigen_matrix
+    : public decltype(is_eigen_matrix_detail::test(std::declval<T*>()))
+{};
+
+template <typename VectorType, typename Enable = void>
+struct elementwise_minimum;
+
+template <typename VectorType, typename Enable = void>
+struct elementwise_maximum;
+
 template <typename VectorType>
-struct elementwise_minimum {
+struct elementwise_minimum<VectorType, typename std::enable_if<is_eigen_matrix<VectorType>::value>::type> {
     __device__ VectorType operator()(const VectorType &a, const VectorType &b) {
         return a.array().min(b.array()).matrix();
     }
 };
 
 template <typename VectorType>
-struct elementwise_maximum {
+struct elementwise_maximum<VectorType, typename std::enable_if<is_eigen_matrix<VectorType>::value>::type> {
     __device__ VectorType operator()(const VectorType &a, const VectorType &b) {
         return a.array().max(b.array()).matrix();
     }
@@ -121,9 +139,18 @@ __host__ __device__ inline bool operator!=(
 }
 
 template <typename ArrayType>
+__host__ __device__ bool device_all(const ArrayType &array) {
+    #pragma unroll
+    for (int i = 0; i < ArrayType::SizeAtCompileTime; ++i) {
+        if (!array[i]) return false;
+    }
+    return true;
+}
+
+template <typename ArrayType>
 __host__ __device__ bool device_any(const ArrayType &array) {
     #pragma unroll
-    for (int i = 0; i < array.size(); ++i) {
+    for (int i = 0; i < ArrayType::SizeAtCompileTime; ++i) {
         if (array[i]) return true;
     }
     return false;
@@ -356,7 +383,8 @@ struct hash_eigen {
     __host__ __device__
     std::size_t operator()(T const& matrix) const {
         size_t seed = 0;
-        for (int i = 0; i < (int)matrix.size(); i++) {
+        #pragma unroll
+        for (int i = 0; i < T::SizeAtCompileTime; i++) {
             auto elem = *(matrix.data() + i);
             seed ^= stdgpu::hash<typename T::Scalar>()(elem) + 0x9e3779b9 +
                     (seed << 6) + (seed >> 2);

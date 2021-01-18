@@ -40,7 +40,7 @@ class LaserScanBuffer;
 class OccupancyGrid;
 class OrientedBoundingBox;
 
-class PointCloud : public GeometryBase<3> {
+class PointCloud : public GeometryBase3D {
 public:
     PointCloud();
     PointCloud(const thrust::host_vector<Eigen::Vector3f> &points);
@@ -63,7 +63,7 @@ public:
     Eigen::Vector3f GetMinBound() const override;
     Eigen::Vector3f GetMaxBound() const override;
     Eigen::Vector3f GetCenter() const override;
-    AxisAlignedBoundingBox GetAxisAlignedBoundingBox() const override;
+    AxisAlignedBoundingBox<3> GetAxisAlignedBoundingBox() const override;
     PointCloud &Transform(const Eigen::Matrix4f &transformation) override;
     PointCloud &Translate(const Eigen::Vector3f &translation,
                           bool relative = true) override;
@@ -138,7 +138,7 @@ public:
     /// Function to crop pointcloud into output pointcloud
     /// All points with coordinates outside the bounding box \param bbox are
     /// clipped.
-    std::shared_ptr<PointCloud> Crop(const AxisAlignedBoundingBox &bbox) const;
+    std::shared_ptr<PointCloud> Crop(const AxisAlignedBoundingBox<3> &bbox) const;
 
     /// \brief Function to crop pointcloud into output pointcloud
     ///

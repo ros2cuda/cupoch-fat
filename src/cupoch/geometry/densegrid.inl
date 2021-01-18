@@ -27,13 +27,13 @@ namespace geometry {
 
 template <class VoxelType>
 DenseGrid<VoxelType>::DenseGrid(Geometry::GeometryType type)
-    : GeometryBase<3>(type) {}
+    : GeometryBase3D(type) {}
 template <class VoxelType>
 DenseGrid<VoxelType>::DenseGrid(Geometry::GeometryType type,
                                 float voxel_size,
                                 int resolution,
                                 const Eigen::Vector3f &origin)
-    : GeometryBase<3>(type),
+    : GeometryBase3D(type),
       voxel_size_(voxel_size),
       resolution_(resolution),
       origin_(origin) {
@@ -42,7 +42,7 @@ DenseGrid<VoxelType>::DenseGrid(Geometry::GeometryType type,
 template <class VoxelType>
 DenseGrid<VoxelType>::DenseGrid(Geometry::GeometryType type,
                                 const DenseGrid &src_grid)
-    : GeometryBase<3>(type),
+    : GeometryBase3D(type),
       voxel_size_(src_grid.voxel_size_),
       resolution_(src_grid.resolution_),
       origin_(src_grid.origin_),
@@ -82,8 +82,8 @@ Eigen::Vector3f DenseGrid<VoxelType>::GetCenter() const {
 }
 
 template <class VoxelType>
-AxisAlignedBoundingBox DenseGrid<VoxelType>::GetAxisAlignedBoundingBox() const {
-    AxisAlignedBoundingBox box;
+AxisAlignedBoundingBox<3> DenseGrid<VoxelType>::GetAxisAlignedBoundingBox() const {
+    AxisAlignedBoundingBox<3> box;
     box.min_bound_ = GetMinBound();
     box.max_bound_ = GetMaxBound();
     return box;

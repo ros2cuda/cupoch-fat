@@ -120,11 +120,11 @@ struct compute_carve_functor {
 
 }  // namespace
 
-VoxelGrid::VoxelGrid() : GeometryBase<3>(Geometry::GeometryType::VoxelGrid) {}
+VoxelGrid::VoxelGrid() : GeometryBase3D(Geometry::GeometryType::VoxelGrid) {}
 VoxelGrid::~VoxelGrid() {}
 
 VoxelGrid::VoxelGrid(const VoxelGrid &src_voxel_grid)
-    : GeometryBase<3>(Geometry::GeometryType::VoxelGrid),
+    : GeometryBase3D(Geometry::GeometryType::VoxelGrid),
       voxel_size_(src_voxel_grid.voxel_size_),
       origin_(src_voxel_grid.origin_),
       voxels_keys_(src_voxel_grid.voxels_keys_),
@@ -193,8 +193,8 @@ Eigen::Vector3f VoxelGrid::GetCenter() const {
     return center;
 }
 
-AxisAlignedBoundingBox VoxelGrid::GetAxisAlignedBoundingBox() const {
-    AxisAlignedBoundingBox box;
+AxisAlignedBoundingBox<3> VoxelGrid::GetAxisAlignedBoundingBox() const {
+    AxisAlignedBoundingBox<3> box;
     box.min_bound_ = GetMinBound();
     box.max_bound_ = GetMaxBound();
     return box;

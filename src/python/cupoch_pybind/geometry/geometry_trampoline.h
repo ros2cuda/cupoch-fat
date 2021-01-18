@@ -39,7 +39,7 @@ public:
     bool IsEmpty() const override { PYBIND11_OVERLOAD_PURE(bool, GeometryT, ); }
 };
 
-template <class Geometry3DBase = geometry::GeometryBase<3>>
+template <class Geometry3DBase = geometry::GeometryBase3D>
 class PyGeometry3D : public PyGeometry<Geometry3DBase> {
 public:
     using PyGeometry<Geometry3DBase>::PyGeometry;
@@ -52,9 +52,9 @@ public:
     Eigen::Vector3f GetCenter() const override {
         PYBIND11_OVERLOAD_PURE(Eigen::Vector3f, Geometry3DBase, );
     }
-    geometry::AxisAlignedBoundingBox GetAxisAlignedBoundingBox()
+    geometry::AxisAlignedBoundingBox<3> GetAxisAlignedBoundingBox()
             const override {
-        PYBIND11_OVERLOAD_PURE(geometry::AxisAlignedBoundingBox,
+        PYBIND11_OVERLOAD_PURE(geometry::AxisAlignedBoundingBox<3>,
                                Geometry3DBase, );
     }
     Geometry3DBase& Transform(const Eigen::Matrix4f& transformation) override {
@@ -62,7 +62,7 @@ public:
     }
 };
 
-template <class Geometry2DBase = geometry::GeometryBase<2>>
+template <class Geometry2DBase = geometry::GeometryBase2D>
 class PyGeometry2D : public PyGeometry<Geometry2DBase> {
 public:
     using PyGeometry<Geometry2DBase>::PyGeometry;
@@ -71,5 +71,20 @@ public:
     }
     Eigen::Vector2f GetMaxBound() const override {
         PYBIND11_OVERLOAD_PURE(Eigen::Vector2f, Geometry2DBase, );
+    }
+    Geometry2DBase& Transform(const Eigen::Matrix3f& transformation) override {
+        PYBIND11_OVERLOAD_PURE(Geometry2DBase&, Geometry2DBase, transformation);
+    }
+};
+
+template <class GeometryNoTrans2DBase = geometry::GeometryBaseNoTrans2D>
+class PyGeometryNoTrans2D : public PyGeometry<GeometryNoTrans2DBase> {
+public:
+    using PyGeometry<GeometryNoTrans2DBase>::PyGeometry;
+    Eigen::Vector2f GetMinBound() const override {
+        PYBIND11_OVERLOAD_PURE(Eigen::Vector2f, GeometryNoTrans2DBase, );
+    }
+    Eigen::Vector2f GetMaxBound() const override {
+        PYBIND11_OVERLOAD_PURE(Eigen::Vector2f, GeometryNoTrans2DBase, );
     }
 };
