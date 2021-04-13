@@ -124,10 +124,9 @@ if (BUILD_GLFW)
     list(APPEND GLFW_LIBRARIES    ${OPENGL_gl_LIBRARY})
 endif ()
 
-cuda_add_library(fmt fmt/src/format.cc fmt/src/posix.cc)
-target_include_directories(fmt PUBLIC fmt/include)
-set(fmt_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/fmt/include)
-set(fmt_LIBRARIES fmt)
+set(SPDLOG_MASTER_PROJECT OFF)
+add_subdirectory(spdlog)
+set(spdlog_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/spdlog/include)
 
 # JSONCPP
 if ((APPLE) AND ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU"))
@@ -235,18 +234,7 @@ set(rply_LIBRARIES rply)
 set(dlpack_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/dlpack/include)
 
 # rmm
-if (WIN32)
-  set(cnmem_INCLUDE_DIRS "")
-  set(rmm_INCLUDE_DIRS "")
-  set(rmm_LIBRARIES "")
-else ()
-  add_library(rmm rmm/src/memory_manager.cpp cnmem/src/cnmem.cpp)
-  target_include_directories(rmm PRIVATE cnmem/include rmm/include)
-  target_link_libraries(rmm ${CUDA_LIBRARIES})
-  set(cnmem_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/cnmem/include)
-  set(rmm_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/rmm/include)
-  set(rmm_LIBRARIES rmm)
-endif ()
+set(rmm_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/rmm/include)
 
 # imgui
 add_library(imgui STATIC imgui/imgui.cpp
@@ -289,6 +277,20 @@ set(urdfdom_INCLUDE_DIR
     ${CMAKE_CURRENT_BINARY_DIR})
 set(urdfdom_LIBRARIES urdfdom)
 
+# libSGM
+set(libSGM_VERSION_MAJOR 2)
+set(libSGM_VERSION_MINOR 7)
+set(libSGM_VERSION_PATCH 0)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/libSGM/include/libsgm_config.h.in
+               ${CMAKE_CURRENT_SOURCE_DIR}/libSGM/include/libsgm_config.h
+)
+file(GLOB STEREOSRCS "libSGM/src/*.cu" "libSGM/src/*.cpp")
+cuda_add_library(sgm ${STEREOSRCS})
+target_include_directories(sgm PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/libSGM/include)
+target_link_libraries(sgm ${CUDA_LIBRARIES})
+set(SGM_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/libSGM/include)
+set(SGM_LIBRARIES sgm)
+
 list(APPEND 3RDPARTY_INCLUDE_DIRS
      ${EIGEN3_INCLUDE_DIRS}
      ${flann_INCLUDE_DIRS}
@@ -297,15 +299,15 @@ list(APPEND 3RDPARTY_INCLUDE_DIRS
      ${JPEG_TURBO_INCLUDE_DIRS}
      ${PNG_INCLUDE_DIRS}
      ${rply_INCLUDE_DIRS}
-     ${fmt_INCLUDE_DIRS}
      ${JSONCPP_INCLUDE_DIRS}
      ${liblzf_INCLUDE_DIRS}
      ${tomasakeninemoeller_INCLUDE_DIRS}
      ${dlpack_INCLUDE_DIRS}
-     ${cnmem_INCLUDE_DIRS}
      ${rmm_INCLUDE_DIRS}
      ${imgui_INCLUDE_DIRS}
      ${stdgpu_INCLUDE_DIRS}
+     ${spdlog_INCLUDE_DIRS}
+     ${SGM_INCLUDE_DIRS}
      ${tinyobjloader_INCLUDE_DIRS}
      ${googletest_INCLUDE_DIRS}
      ${lbvh_INCLUDE_DIRS}
@@ -323,12 +325,11 @@ list(APPEND 3RDPARTY_LIBRARIES
      ${rply_LIBRARIES}
      ${JSONCPP_LIBRARIES}
      ${stdgpu_LIBRARIES}
+     ${SGM_LIBRARIES}
      ${tinyobjloader_LIBRARIES}
      ${googletest_LIBRARIES}
-     ${fmt_LIBRARIES}
      ${imgui_LIBRARIES}
      ${urdfdom_LIBRARIES}
-     ${rmm_LIBRARIES}
      ${CUDA_LIBRARIES}
 )
 
@@ -338,6 +339,7 @@ install(TARGETS ${FLANN_LIBRARIES}
                 ${rmm_LIBRARIES}
                 ${liblzf_LIBRARIES}
                 ${rply_LIBRARIES}
+                ${SGM_LIBRARIES}
         EXPORT ${PROJECT_NAME}3rdTargets
         RUNTIME DESTINATION ${CUPOCH_INSTALL_BIN_DIR}
         LIBRARY DESTINATION ${CUPOCH_INSTALL_LIB_DIR}
@@ -345,11 +347,11 @@ install(TARGETS ${FLANN_LIBRARIES}
 )
 
 install(DIRECTORY ${flann_INCLUDE_DIRS}
-                    ${fmt_INCLUDE_DIRS}
-                    ${cnmem_INCLUDE_DIRS}
                     ${rmm_INCLUDE_DIRS}
                     ${liblzf_INCLUDE_DIRS}
                     ${rply_INCLUDE_DIRS}
+                    ${spdlog_INCLUDE_DIRS}
+                    ${SGM_INCLUDE_DIRS}
     DESTINATION ${CUPOCH_INSTALL_INCLUDE_DIR}/../
     # FILES_MATCHING
     #     PATTERN "*.h"

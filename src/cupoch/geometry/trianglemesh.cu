@@ -153,6 +153,7 @@ void FilterSmoothLaplacianHelper(
         thrust::permutation_iterator<ElementIterator, decltype(tritr)> pmitr(
                 prev_vertices.begin(), tritr);
         thrust::reduce_by_key(
+                utility::exec_policy(0)->on(0),
                 mesh->edge_list_.begin(), mesh->edge_list_.end(),
                 thrust::make_transform_iterator(
                         make_tuple_iterator(pmitr, weights.begin()),
@@ -170,6 +171,7 @@ void FilterSmoothLaplacianHelper(
         thrust::permutation_iterator<ElementIterator, decltype(tritr)> pmitr(
                 prev_vertex_normals.begin(), tritr);
         thrust::reduce_by_key(
+                utility::exec_policy(0)->on(0),
                 mesh->edge_list_.begin(), mesh->edge_list_.end(),
                 thrust::make_transform_iterator(
                         make_tuple_iterator(pmitr, weights.begin()),
@@ -188,6 +190,7 @@ void FilterSmoothLaplacianHelper(
         thrust::permutation_iterator<ElementIterator, decltype(tritr)> pmitr(
                 prev_vertex_colors.begin(), tritr);
         thrust::reduce_by_key(
+                utility::exec_policy(0)->on(0),
                 mesh->edge_list_.begin(), mesh->edge_list_.end(),
                 thrust::make_transform_iterator(
                         make_tuple_iterator(pmitr, weights.begin()),
@@ -341,6 +344,12 @@ TriangleMesh::TriangleMesh(
     : MeshBase(Geometry::GeometryType::TriangleMesh, vertices),
       triangles_(triangles) {}
 
+TriangleMesh::TriangleMesh(
+        const std::vector<Eigen::Vector3f> &vertices,
+        const std::vector<Eigen::Vector3i> &triangles)
+    : MeshBase(Geometry::GeometryType::TriangleMesh, vertices),
+      triangles_(triangles) {}
+
 TriangleMesh::TriangleMesh(const geometry::TriangleMesh &other)
     : MeshBase(Geometry::GeometryType::TriangleMesh,
                other.vertices_,
@@ -456,6 +465,9 @@ TriangleMesh &TriangleMesh::operator+=(const TriangleMesh &mesh) {
         utility::LogError(
                 "[TriangleMesh] copy of uvs and texture is not implemented "
                 "yet");
+    } else if (mesh.HasTriangleUvs() || mesh.HasTexture()) {
+        triangle_uvs_ = mesh.triangle_uvs_;
+        texture_ = mesh.texture_;
     }
     return (*this);
 }
@@ -505,7 +517,8 @@ TriangleMesh &TriangleMesh::ComputeVertexNormals(bool normalized /* = true*/) {
                         tri_ptr, tri_ptr + copy_tri.size() * 3,
                         nm_thrice.begin());
     auto end = thrust::reduce_by_key(
-            thrust::device, tri_ptr, tri_ptr + copy_tri.size() * 3,
+            utility::exec_policy(0)->on(0),
+            tri_ptr, tri_ptr + copy_tri.size() * 3,
             nm_thrice.begin(), thrust::make_discard_iterator(),
             vertex_normals_.begin());
     size_t n_out = thrust::distance(vertex_normals_.begin(), end.second);
@@ -570,7 +583,8 @@ std::shared_ptr<TriangleMesh> TriangleMesh::FilterSharpen(
         const Eigen::Vector3f &sum = thrust::get<2>(x);
         return prv + strength * (prv * thrust::get<1>(x) - sum);
     };
-    thrust::reduce_by_key(mesh->edge_list_.begin(), mesh->edge_list_.end(),
+    thrust::reduce_by_key(utility::exec_policy(0)->on(0),
+                          mesh->edge_list_.begin(), mesh->edge_list_.end(),
                           thrust::make_constant_iterator(1),
                           thrust::make_discard_iterator(), counts.begin(),
                           edge_first_eq_functor());
@@ -581,7 +595,8 @@ std::shared_ptr<TriangleMesh> TriangleMesh::FilterSharpen(
                     extract_element_functor<int, 2, 1>());
             thrust::permutation_iterator<ElementIterator, decltype(tritr)>
                     pmitr(prev_vertices.begin(), tritr);
-            thrust::reduce_by_key(mesh->edge_list_.begin(),
+            thrust::reduce_by_key(utility::exec_policy(0)->on(0),
+                                  mesh->edge_list_.begin(),
                                   mesh->edge_list_.end(), pmitr,
                                   thrust::make_discard_iterator(),
                                   vertex_sums.begin(), edge_first_eq_functor());
@@ -596,7 +611,8 @@ std::shared_ptr<TriangleMesh> TriangleMesh::FilterSharpen(
                     extract_element_functor<int, 2, 1>());
             thrust::permutation_iterator<ElementIterator, decltype(tritr)>
                     pmitr(prev_vertex_normals.begin(), tritr);
-            thrust::reduce_by_key(mesh->edge_list_.begin(),
+            thrust::reduce_by_key(utility::exec_policy(0)->on(0),
+                                  mesh->edge_list_.begin(),
                                   mesh->edge_list_.end(), pmitr,
                                   thrust::make_discard_iterator(),
                                   normal_sums.begin(), edge_first_eq_functor());
@@ -611,7 +627,8 @@ std::shared_ptr<TriangleMesh> TriangleMesh::FilterSharpen(
                     extract_element_functor<int, 2, 1>());
             thrust::permutation_iterator<ElementIterator, decltype(tritr)>
                     pmitr(prev_vertex_colors.begin(), tritr);
-            thrust::reduce_by_key(mesh->edge_list_.begin(),
+            thrust::reduce_by_key(utility::exec_policy(0)->on(0),
+                                  mesh->edge_list_.begin(),
                                   mesh->edge_list_.end(), pmitr,
                                   thrust::make_discard_iterator(),
                                   color_sums.begin(), edge_first_eq_functor());
@@ -669,7 +686,8 @@ std::shared_ptr<TriangleMesh> TriangleMesh::FilterSmoothSimple(
         const Eigen::Vector3f &sum = thrust::get<2>(x);
         return (prv + sum) / (1.0 + thrust::get<1>(x));
     };
-    thrust::reduce_by_key(mesh->edge_list_.begin(), mesh->edge_list_.end(),
+    thrust::reduce_by_key(utility::exec_policy(0)->on(0),
+                          mesh->edge_list_.begin(), mesh->edge_list_.end(),
                           thrust::make_constant_iterator(1),
                           thrust::make_discard_iterator(), counts.begin(),
                           edge_first_eq_functor());
@@ -680,7 +698,8 @@ std::shared_ptr<TriangleMesh> TriangleMesh::FilterSmoothSimple(
                     extract_element_functor<int, 2, 1>());
             thrust::permutation_iterator<ElementIterator, decltype(tritr)>
                     pmitr(prev_vertices.begin(), tritr);
-            thrust::reduce_by_key(mesh->edge_list_.begin(),
+            thrust::reduce_by_key(utility::exec_policy(0)->on(0),
+                                  mesh->edge_list_.begin(),
                                   mesh->edge_list_.end(), pmitr,
                                   thrust::make_discard_iterator(),
                                   vertex_sums.begin(), edge_first_eq_functor());
@@ -695,7 +714,8 @@ std::shared_ptr<TriangleMesh> TriangleMesh::FilterSmoothSimple(
                     extract_element_functor<int, 2, 1>());
             thrust::permutation_iterator<ElementIterator, decltype(tritr)>
                     pmitr(prev_vertex_normals.begin(), tritr);
-            thrust::reduce_by_key(mesh->edge_list_.begin(),
+            thrust::reduce_by_key(utility::exec_policy(0)->on(0),
+                                  mesh->edge_list_.begin(),
                                   mesh->edge_list_.end(), pmitr,
                                   thrust::make_discard_iterator(),
                                   normal_sums.begin(), edge_first_eq_functor());
@@ -710,7 +730,8 @@ std::shared_ptr<TriangleMesh> TriangleMesh::FilterSmoothSimple(
                     extract_element_functor<int, 2, 1>());
             thrust::permutation_iterator<ElementIterator, decltype(tritr)>
                     pmitr(prev_vertex_colors.begin(), tritr);
-            thrust::reduce_by_key(mesh->edge_list_.begin(),
+            thrust::reduce_by_key(utility::exec_policy(0)->on(0),
+                                  mesh->edge_list_.begin(),
                                   mesh->edge_list_.end(), pmitr,
                                   thrust::make_discard_iterator(),
                                   color_sums.begin(), edge_first_eq_functor());
@@ -766,7 +787,8 @@ std::shared_ptr<TriangleMesh> TriangleMesh::FilterSmoothLaplacian(
             thrust::raw_pointer_cast(prev_vertices.data()));
     thrust::transform(mesh->edge_list_.begin(), mesh->edge_list_.end(),
                       weights.begin(), func);
-    thrust::reduce_by_key(mesh->edge_list_.begin(), mesh->edge_list_.end(),
+    thrust::reduce_by_key(utility::exec_policy(0)->on(0),
+                          mesh->edge_list_.begin(), mesh->edge_list_.end(),
                           weights.begin(), thrust::make_discard_iterator(),
                           total_weights.begin(), edge_first_eq_functor());
 
@@ -824,7 +846,8 @@ std::shared_ptr<TriangleMesh> TriangleMesh::FilterSmoothTaubin(
             thrust::raw_pointer_cast(prev_vertices.data()));
     thrust::transform(mesh->edge_list_.begin(), mesh->edge_list_.end(),
                       weights.begin(), func);
-    thrust::reduce_by_key(mesh->edge_list_.begin(), mesh->edge_list_.end(),
+    thrust::reduce_by_key(utility::exec_policy(0)->on(0),
+                          mesh->edge_list_.begin(), mesh->edge_list_.end(),
                           weights.begin(), thrust::make_discard_iterator(),
                           total_weights.begin(), edge_first_eq_functor());
     for (int iter = 0; iter < number_of_iterations; ++iter) {
@@ -852,6 +875,7 @@ float TriangleMesh::GetSurfaceArea() const {
     const Eigen::Vector3f *vert_pt = thrust::raw_pointer_cast(vertices_.data());
     const Eigen::Vector3i *tri_pt = thrust::raw_pointer_cast(triangles_.data());
     return thrust::transform_reduce(
+            utility::exec_policy(0)->on(0),
             thrust::make_counting_iterator<size_t>(0),
             thrust::make_counting_iterator(triangles_.size()),
             [vert_pt, tri_pt] __device__(size_t idx) -> float {
@@ -871,7 +895,7 @@ float TriangleMesh::GetSurfaceArea(
                       [vert_pt, tri_pt] __device__(size_t idx) {
                           return GetTriangleArea(vert_pt, tri_pt, idx);
                       });
-    return thrust::reduce(triangle_areas.begin(), triangle_areas.end());
+    return thrust::reduce(utility::exec_policy(0)->on(0), triangle_areas.begin(), triangle_areas.end());
 }
 
 std::shared_ptr<PointCloud> TriangleMesh::SamplePointsUniformlyImpl(
@@ -907,7 +931,7 @@ std::shared_ptr<PointCloud> TriangleMesh::SamplePointsUniformlyImpl(
             triangle_areas.begin(), triangle_areas.end(),
             n_points_of_triangle.begin() + 1,
             [number_of_points] __device__(float triangle_area) {
-                return (size_t)round(triangle_area * number_of_points);
+                return (size_t)llrintf(triangle_area * number_of_points);
             });
     int n_pallarel = number_of_points / triangles_.size();
     sample_points_functor func(
@@ -961,6 +985,7 @@ TriangleMesh &TriangleMesh::RemoveDuplicatedVertices() {
                             make_tuple_begin(index_new_to_old, vertex_normals_,
                                              vertex_colors_));
         auto end0 = thrust::reduce_by_key(
+                utility::exec_policy(0)->on(0),
                 vertices_.begin(), vertices_.end(),
                 thrust::make_constant_iterator<int>(1),
                 thrust::make_discard_iterator(), idx_offsets.begin());
@@ -978,6 +1003,7 @@ TriangleMesh &TriangleMesh::RemoveDuplicatedVertices() {
                 vertices_.begin(), vertices_.end(),
                 make_tuple_begin(index_new_to_old, vertex_normals_));
         auto end0 = thrust::reduce_by_key(
+                utility::exec_policy(0)->on(0),
                 vertices_.begin(), vertices_.end(),
                 thrust::make_constant_iterator<int>(1),
                 thrust::make_discard_iterator(), idx_offsets.begin());
@@ -993,6 +1019,7 @@ TriangleMesh &TriangleMesh::RemoveDuplicatedVertices() {
                             vertices_.begin(), vertices_.end(),
                             make_tuple_begin(index_new_to_old, vertex_colors_));
         auto end0 = thrust::reduce_by_key(
+                utility::exec_policy(0)->on(0),
                 vertices_.begin(), vertices_.end(),
                 thrust::make_constant_iterator<int>(1),
                 thrust::make_discard_iterator(), idx_offsets.begin());
@@ -1008,6 +1035,7 @@ TriangleMesh &TriangleMesh::RemoveDuplicatedVertices() {
                             vertices_.begin(), vertices_.end(),
                             index_new_to_old.begin());
         auto end0 = thrust::reduce_by_key(
+                utility::exec_policy(0)->on(0),
                 vertices_.begin(), vertices_.end(),
                 thrust::make_constant_iterator<int>(1),
                 thrust::make_discard_iterator(), idx_offsets.begin());
@@ -1101,22 +1129,26 @@ TriangleMesh &TriangleMesh::RemoveUnreferencedVertices() {
     size_t k = 0;
     if (!has_vert_normal && !has_vert_color) {
         k = remove_if_vectors_without_resize(
+                utility::exec_policy(0)->on(0),
                 check_ref_functor<bool, int, Eigen::Vector3f>(),
                 vertex_has_reference, index_new_to_old, vertices_);
     } else if (has_vert_normal && !has_vert_color) {
         k = remove_if_vectors_without_resize(
+                utility::exec_policy(0)->on(0),
                 check_ref_functor<bool, int, Eigen::Vector3f,
                                   Eigen::Vector3f>(),
                 vertex_has_reference, index_new_to_old, vertices_,
                 vertex_normals_);
     } else if (!has_vert_normal && has_vert_color) {
         k = remove_if_vectors_without_resize(
+                utility::exec_policy(0)->on(0),
                 check_ref_functor<bool, int, Eigen::Vector3f,
                                   Eigen::Vector3f>(),
                 vertex_has_reference, index_new_to_old, vertices_,
                 vertex_colors_);
     } else {
         k = remove_if_vectors_without_resize(
+                utility::exec_policy(0)->on(0),
                 check_ref_functor<bool, int, Eigen::Vector3f, Eigen::Vector3f,
                                   Eigen::Vector3f>(),
                 vertex_has_reference, index_new_to_old, vertices_,
@@ -1175,10 +1207,12 @@ TriangleMesh &TriangleMesh::RemoveDegenerateTriangles() {
                          }
                      });
     if (!has_tri_normal) {
-        remove_if_vectors(check_ref_functor<bool, Eigen::Vector3i>(),
+        remove_if_vectors(utility::exec_policy(0)->on(0),
+                          check_ref_functor<bool, Eigen::Vector3i>(),
                           is_degenerate, triangles_);
     } else {
         remove_if_vectors(
+                utility::exec_policy(0)->on(0),
                 check_ref_functor<bool, Eigen::Vector3i, Eigen::Vector3f>(),
                 is_degenerate, triangles_, triangle_normals_);
     }

@@ -19,13 +19,13 @@
         * [Real-time visual odometry from dense RGB-D images](https://ieeexplore.ieee.org/document/6130321)
         * [Robust Odometry Estimation for RGB-D Cameras](https://ieeexplore.ieee.org/document/6631104)
     * Kinect Fusion
+    * Stereo Matching
     * Collision checking
     * Occupancy grid
     * Distance transform
         * [Parallel Banding Algorithm to Compute Exact Distance Transform with the GPU](https://www.comp.nus.edu.sg/~tants/pba.html)
     * Path finding on graph structure
     * Path planning for collision avoidance
-* [Open3D](https://github.com/intel-isl/Open3D)-like API
 * Support memory pool and managed allocators
 * Interactive GUI (OpenGL CUDA interop and [imgui](https://github.com/ocornut/imgui))
 * Interoperability between cupoch 3D data and [DLPack](https://github.com/dmlc/dlpack)(Pytorch, Cupy,...) data structure
@@ -35,9 +35,9 @@
 * Ubuntu 18.04
 * Windows 10
 
-With Python version: * 3.6 * 3.7 * 3.8
+With Python version: * 3.6 * 3.7 * 3.8 * 3.9
 
-and CUDA version: * 10.0 * 10.1 * 10.2
+and CUDA version: * 10.1 * 10.2 (Ubuntu) * 11.0 (Windows)
 
 ## Resources
 

@@ -107,13 +107,14 @@ struct clip_intensity_functor {
     }
 };
 
+template <typename T>
 struct linear_transform_functor {
     linear_transform_functor(float scale, float offset)
         : scale_(scale), offset_(offset){};
     const float scale_;
     const float offset_;
-    __device__ void operator() (float& f) {
-        f = scale_ * f + offset_;
+    __device__ void operator() (T& f) {
+        f = (T)(scale_ * (float)f + offset_);
     }
 };
 
@@ -346,6 +347,19 @@ struct depth_to_float_functor {
 
 Image::Image() : GeometryBaseNoTrans2D(Geometry::GeometryType::Image) {}
 Image::~Image() {}
+Image::Image(const Image& other)
+: GeometryBaseNoTrans2D(Geometry::GeometryType::Image),
+width_(other.width_), height_(other.height_), num_of_channels_(other.num_of_channels_),
+bytes_per_channel_(other.bytes_per_channel_), data_(other.data_) {}
+
+Image& Image::operator=(const Image& other) {
+    width_ = other.width_;
+    height_ = other.height_;
+    num_of_channels_ = other.num_of_channels_;
+    bytes_per_channel_ = other.bytes_per_channel_;
+    data_ = other.data_;
+    return *this;
+}
 
 Image &Image::Clear() {
     width_ = 0;
@@ -413,14 +427,22 @@ Image &Image::ClipIntensity(float min /* = 0.0*/, float max /* = 1.0*/) {
 }
 
 Image &Image::LinearTransform(float scale, float offset /* = 0.0*/) {
-    if (num_of_channels_ != 1 || bytes_per_channel_ != 4) {
+    if (bytes_per_channel_ != 1 &&
+        (num_of_channels_ != 1 || bytes_per_channel_ != 4)) {
         utility::LogError("[LinearTransform] Unsupported image format.");
         return *this;
     }
-    linear_transform_functor func(scale, offset);
-    float* pt = (float*)thrust::raw_pointer_cast(data_.data());
-    thrust::for_each(thrust::device, pt, pt + (width_ * height_),
-                     func);
+    if (bytes_per_channel_ == 1) {
+        linear_transform_functor<uint8_t> func(scale, offset);
+        uint8_t* pt = thrust::raw_pointer_cast(data_.data());
+        thrust::for_each(thrust::device, pt, pt + (width_ * height_ * num_of_channels_),
+                         func);
+    } else if (bytes_per_channel_ == 4) {
+        linear_transform_functor<float> func(scale, offset);
+        float* pt = (float*)thrust::raw_pointer_cast(data_.data());
+        thrust::for_each(thrust::device, pt, pt + (width_ * height_),
+                         func);
+    }
     return *this;
 }
 

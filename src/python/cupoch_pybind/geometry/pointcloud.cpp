@@ -116,6 +116,9 @@ void pybind_pointcloud(py::module &m) {
             .def("transform", &geometry::PointCloud::Transform,
                  "Apply transformation (4x4 matrix) to the geometry "
                  "coordinates.")
+            .def("get_oriented_bounding_box",
+                 &geometry::PointCloud::GetOrientedBoundingBox,
+                 "Returns an oriented bounding box of the pointcloud.")
             .def("paint_uniform_color",
                  &geometry::PointCloud::PaintUniformColor, "color"_a,
                  "Assigns each point in the PointCloud the same color.")
@@ -275,7 +278,11 @@ void pybind_pointcloud(py::module &m) {
             .def_static(
                     "create_from_occupancygrid",
                     &geometry::PointCloud::CreateFromOccupancyGrid,
-                    "Factory function to create a pointcloud from Occupancy Grid.");
+                    "Factory function to create a pointcloud from Occupancy Grid.")
+            .def_static(
+                    "create_from_disparity",
+                    &geometry::PointCloud::CreateFromDisparity,
+                    "Factory function to create a pointcloud from a disparity image.");
     docstring::ClassMethodDocInject(m, "PointCloud", "has_colors");
     docstring::ClassMethodDocInject(m, "PointCloud", "has_normals");
     docstring::ClassMethodDocInject(m, "PointCloud", "has_points");

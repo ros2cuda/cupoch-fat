@@ -19,7 +19,6 @@
  * IN THE SOFTWARE.
 **/
 #include <thrust/gather.h>
-#include <thrust/count.h>
 #include <thrust/sort.h>
 #include <thrust/set_operations.h>
 #include <thrust/iterator/discard_iterator.h>
@@ -76,32 +75,20 @@ struct compute_key_functor {
     }
 };
 
-template <typename OutputIterator, class... Args>
-__host__ int CalcAverageByKey(utility::device_vector<Eigen::Vector3i> &keys,
-                              OutputIterator buf_begins,
-                              OutputIterator output_begins) {
-    const size_t n = keys.size();
-    thrust::sort_by_key(utility::exec_policy(0)->on(0),
-                        keys.begin(), keys.end(), buf_begins);
-
-    utility::device_vector<int> counts(n);
-    auto end1 = thrust::reduce_by_key(
-            keys.begin(), keys.end(), thrust::make_constant_iterator(1),
-            thrust::make_discard_iterator(), counts.begin());
-    int n_out = thrust::distance(counts.begin(), end1.second);
-    counts.resize(n_out);
-
-    thrust::equal_to<Eigen::Vector3i> binary_pred;
-    add_tuple_functor<Args...> add_func;
-    auto end2 = thrust::reduce_by_key(keys.begin(), keys.end(), buf_begins,
-                                      thrust::make_discard_iterator(),
-                                      output_begins, binary_pred, add_func);
-
-    devide_tuple_functor<Args...> dv_func;
-    thrust::transform(output_begins, output_begins + n_out, counts.begin(),
-                      output_begins, dv_func);
-    return n_out;
-}
+template <int Index, class... Args>
+struct normalize_and_devide_tuple_functor
+    : public thrust::binary_function<const thrust::tuple<Args...>,
+                                     const int,
+                                     thrust::tuple<Args...>> {
+    __host__ __device__ thrust::tuple<Args...> operator()(
+            const thrust::tuple<Args...> &x, const int &y) const {
+        thrust::tuple<Args...> ans = x;
+        devide_tuple_impl(ans, y,
+                          thrust::make_index_sequence<sizeof...(Args)>{});
+        thrust::get<Index>(ans).normalize();
+        return ans;
+    }
+};
 
 struct check_distance_threshold_functor {
     check_distance_threshold_functor(float distance_threshold)
@@ -164,60 +151,87 @@ std::shared_ptr<PointCloud> PointCloud::VoxelDownSample(
 
     utility::device_vector<Eigen::Vector3f> sorted_points = points_;
     output->points_.resize(n);
+    utility::device_vector<int> counts(n);
+    thrust::equal_to<Eigen::Vector3i> binary_pred;
     if (!has_normals && !has_colors) {
-        typedef thrust::tuple<utility::device_vector<Eigen::Vector3f>::iterator>
-                IteratorTuple;
-        typedef thrust::zip_iterator<IteratorTuple> ZipIterator;
-        auto n_out = CalcAverageByKey<ZipIterator, Eigen::Vector3f>(
-                keys, make_tuple_begin(sorted_points),
-                make_tuple_begin(output->points_));
+        thrust::sort_by_key(utility::exec_policy(0)->on(0),
+                            keys.begin(), keys.end(), make_tuple_begin(sorted_points));
+        add_tuple_functor<Eigen::Vector3f, int> add_func;
+        auto begin = make_tuple_begin(output->points_, counts);
+        auto end = thrust::reduce_by_key(utility::exec_policy(0)->on(0),
+                                         keys.begin(), keys.end(),
+                                         make_tuple_iterator(sorted_points.begin(),
+                                                             thrust::make_constant_iterator(1)),
+                                         thrust::make_discard_iterator(),
+                                         begin, binary_pred, add_func);
+        int n_out = thrust::distance(begin, end.second);
+        devide_tuple_functor<Eigen::Vector3f> dv_func;
+        auto output_begins = make_tuple_begin(output->points_);
+        thrust::transform(output_begins, output_begins + n_out, counts.begin(),
+                          output_begins, dv_func);
         output->points_.resize(n_out);
     } else if (has_normals && !has_colors) {
         utility::device_vector<Eigen::Vector3f> sorted_normals = normals_;
         output->normals_.resize(n);
-        typedef thrust::tuple<utility::device_vector<Eigen::Vector3f>::iterator,
-                              utility::device_vector<Eigen::Vector3f>::iterator>
-                IteratorTuple;
-        typedef thrust::zip_iterator<IteratorTuple> ZipIterator;
-        auto n_out =
-                CalcAverageByKey<ZipIterator, Eigen::Vector3f, Eigen::Vector3f>(
-                        keys, make_tuple_begin(sorted_points, sorted_normals),
-                        make_tuple_begin(output->points_, output->normals_));
+        thrust::sort_by_key(utility::exec_policy(0)->on(0),
+                            keys.begin(), keys.end(), make_tuple_begin(sorted_points, sorted_normals));
+        add_tuple_functor<Eigen::Vector3f, Eigen::Vector3f, int> add_func;
+        auto begin = make_tuple_begin(output->points_, output->normals_, counts);
+        auto end = thrust::reduce_by_key(utility::exec_policy(0)->on(0),
+                                         keys.begin(), keys.end(),
+                                         make_tuple_iterator(sorted_points.begin(),
+                                                             sorted_normals.begin(),
+                                                             thrust::make_constant_iterator(1)),
+                                         thrust::make_discard_iterator(),
+                                         begin, binary_pred, add_func);
+        int n_out = thrust::distance(begin, end.second);
+        normalize_and_devide_tuple_functor<1, Eigen::Vector3f, Eigen::Vector3f> dv_func;
+        auto output_begins = make_tuple_begin(output->points_, output->normals_);
+        thrust::transform(output_begins, output_begins + n_out, counts.begin(),
+                          output_begins, dv_func);
         resize_all(n_out, output->points_, output->normals_);
-        thrust::for_each(
-                output->normals_.begin(), output->normals_.end(),
-                [] __device__(Eigen::Vector3f & nl) { nl.normalize(); });
     } else if (!has_normals && has_colors) {
         utility::device_vector<Eigen::Vector3f> sorted_colors = colors_;
         resize_all(n, output->colors_);
-        typedef thrust::tuple<utility::device_vector<Eigen::Vector3f>::iterator,
-                              utility::device_vector<Eigen::Vector3f>::iterator>
-                IteratorTuple;
-        typedef thrust::zip_iterator<IteratorTuple> ZipIterator;
-        auto n_out =
-                CalcAverageByKey<ZipIterator, Eigen::Vector3f, Eigen::Vector3f>(
-                        keys, make_tuple_begin(sorted_points, sorted_colors),
-                        make_tuple_begin(output->points_, output->colors_));
+        thrust::sort_by_key(utility::exec_policy(0)->on(0),
+                            keys.begin(), keys.end(), make_tuple_begin(sorted_points, sorted_colors));
+        add_tuple_functor<Eigen::Vector3f, Eigen::Vector3f, int> add_func;
+        auto begin = make_tuple_begin(output->points_, output->colors_, counts);
+        auto end = thrust::reduce_by_key(utility::exec_policy(0)->on(0),
+                                         keys.begin(), keys.end(),
+                                         make_tuple_iterator(sorted_points.begin(),
+                                                             sorted_colors.begin(),
+                                                             thrust::make_constant_iterator(1)),
+                                         thrust::make_discard_iterator(),
+                                         begin, binary_pred, add_func);
+        int n_out = thrust::distance(begin, end.second);
+        devide_tuple_functor<Eigen::Vector3f, Eigen::Vector3f> dv_func;
+        auto output_begins = make_tuple_begin(output->points_, output->colors_);
+        thrust::transform(output_begins, output_begins + n_out, counts.begin(),
+                          output_begins, dv_func);
         resize_all(n_out, output->points_, output->colors_);
     } else {
         utility::device_vector<Eigen::Vector3f> sorted_normals = normals_;
         utility::device_vector<Eigen::Vector3f> sorted_colors = colors_;
         resize_all(n, output->normals_, output->colors_);
-        typedef thrust::tuple<utility::device_vector<Eigen::Vector3f>::iterator,
-                              utility::device_vector<Eigen::Vector3f>::iterator,
-                              utility::device_vector<Eigen::Vector3f>::iterator>
-                IteratorTuple;
-        typedef thrust::zip_iterator<IteratorTuple> ZipIterator;
-        auto n_out = CalcAverageByKey<ZipIterator, Eigen::Vector3f,
-                                      Eigen::Vector3f, Eigen::Vector3f>(
-                keys,
-                make_tuple_begin(sorted_points, sorted_normals, sorted_colors),
-                make_tuple_begin(output->points_, output->normals_,
-                                 output->colors_));
+        thrust::sort_by_key(utility::exec_policy(0)->on(0),
+                            keys.begin(), keys.end(), make_tuple_begin(sorted_points, sorted_normals, sorted_colors));
+        add_tuple_functor<Eigen::Vector3f, Eigen::Vector3f, Eigen::Vector3f, int> add_func;
+        auto begin = make_tuple_begin(output->points_, output->normals_, output->colors_, counts);
+        auto end = thrust::reduce_by_key(utility::exec_policy(0)->on(0),
+                                         keys.begin(), keys.end(),
+                                         make_tuple_iterator(sorted_points.begin(),
+                                                             sorted_normals.begin(),
+                                                             sorted_colors.begin(),
+                                                             thrust::make_constant_iterator(1)),
+                                         thrust::make_discard_iterator(),
+                                         begin, binary_pred, add_func);
+        int n_out = thrust::distance(begin, end.second);
+        normalize_and_devide_tuple_functor<1, Eigen::Vector3f, Eigen::Vector3f, Eigen::Vector3f> dv_func;
+        auto output_begins = make_tuple_begin(output->points_, output->normals_, output->colors_);
+        thrust::transform(output_begins, output_begins + n_out, counts.begin(),
+                          output_begins, dv_func);
         resize_all(n_out, output->points_, output->normals_, output->colors_);
-        thrust::for_each(
-                output->normals_.begin(), output->normals_.end(),
-                [] __device__(Eigen::Vector3f & nl) { nl.normalize(); });
     }
 
     utility::LogDebug(
@@ -285,7 +299,8 @@ PointCloud::RemoveRadiusOutliers(size_t nb_points, float search_radius) const {
     utility::device_vector<size_t> indices(n_pt);
     thrust::repeated_range<thrust::counting_iterator<size_t>> range(thrust::make_counting_iterator<size_t>(0),
                                                                     thrust::make_counting_iterator(n_pt), nb_points + 1);
-    thrust::reduce_by_key(range.begin(), range.end(),
+    thrust::reduce_by_key(utility::exec_policy(0)->on(0),
+                          range.begin(), range.end(),
                           thrust::make_transform_iterator(tmp_indices.begin(),
                                                           [] __device__ (int idx) { return (int)(idx >= 0); }),
                           thrust::make_discard_iterator(),
@@ -324,7 +339,8 @@ PointCloud::RemoveStatisticalOutliers(size_t nb_neighbors,
     kdtree.SearchKNN(points_, int(nb_neighbors), tmp_indices, dist);
     thrust::repeated_range<thrust::counting_iterator<size_t>> range(thrust::make_counting_iterator<size_t>(0),
                                                                     thrust::make_counting_iterator(n_pt), nb_neighbors);
-    thrust::reduce_by_key(range.begin(), range.end(),
+    thrust::reduce_by_key(utility::exec_policy(0)->on(0),
+                          range.begin(), range.end(),
                           make_tuple_iterator(thrust::make_constant_iterator<size_t>(1), dist.begin()),
                           thrust::make_discard_iterator(),
                           make_tuple_iterator(counts.begin(), avg_distances.begin()),
@@ -348,20 +364,23 @@ PointCloud::RemoveStatisticalOutliers(size_t nb_neighbors,
                       [] __device__ (float avg, size_t cnt) {
                           return (cnt > 0) ? avg / (float)cnt : -1.0;
                       });
-    const size_t valid_distances =
-            thrust::count_if(avg_distances.begin(), avg_distances.end(),
-                             [] __device__(float x) { return (x >= 0.0); });
+    auto mean_and_count =
+            thrust::transform_reduce(utility::exec_policy(0)->on(0),
+                                     avg_distances.begin(), avg_distances.end(),
+                                     [] __device__(float const &x) {
+                                         return thrust::make_tuple(max(x, 0.0f), (size_t)(x >= 0.0));
+                                     },
+                                     thrust::make_tuple(0.0f, size_t(0)),
+                                     add_tuple_functor<float, size_t>());
+    const size_t valid_distances = thrust::get<1>(mean_and_count);
     if (valid_distances == 0) {
         return std::make_tuple(std::make_shared<PointCloud>(),
                                utility::device_vector<size_t>());
     }
-    float cloud_mean =
-            thrust::reduce(avg_distances.begin(), avg_distances.end(), 0.0,
-                           [] __device__(float const &x, float const &y) {
-                               return max(x, 0.0f) + max(y, 0.0f);
-                           });
+    float cloud_mean =  thrust::get<0>(mean_and_count);
     cloud_mean /= valid_distances;
     const float sq_sum = thrust::transform_reduce(
+            utility::exec_policy(0)->on(0),
             avg_distances.begin(), avg_distances.end(),
             [cloud_mean] __device__(const float x) {
                 return (x > 0) ? (x - cloud_mean) * (x - cloud_mean) : 0;

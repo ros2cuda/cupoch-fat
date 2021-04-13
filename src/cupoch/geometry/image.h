@@ -76,6 +76,8 @@ public:
 public:
     Image();
     ~Image();
+    Image(const Image& other);
+    Image& operator=(const Image& other);
 
     Image &Clear() override;
     bool IsEmpty() const override;
@@ -137,6 +139,11 @@ public:
     static std::shared_ptr<Image>
     CreateDepthToCameraDistanceMultiplierFloatImage(
             const camera::PinholeCameraIntrinsic &intrinsic);
+
+    /// Return a gray scaled float type image.
+    std::shared_ptr<Image> CreateGrayImage(
+            Image::ColorToIntensityConversionType type =
+                    Image::ColorToIntensityConversionType::Weighted) const;
 
     /// Return a gray scaled float type image.
     std::shared_ptr<Image> CreateFloatImage(

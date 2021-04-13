@@ -1,14 +1,128 @@
-# RMM 0.16.0 (Date TBD)
+# RMM 0.18.0 (24 Feb 2021)
+
+## Breaking Changes 🚨
+
+- Remove DeviceBuffer synchronization on default stream (#650) @pentschev
+- Add a Stream class that wraps CuPy/Numba/CudaStream (#636) @shwina
+
+## Bug Fixes 🐛
+
+- SetGPUArchs updated to work around a CMake FindCUDAToolkit issue (#695) @robertmaynard
+- Remove duplicate conda build command (#670) @raydouglass
+- Update CMakeLists.txt VERSION to 0.18.0 (#665) @trxcllnt
+- Fix wrong attribute names leading to DEBUG log build issues (#653) @pentschev
+
+## Documentation 📖
+
+- Correct inconsistencies in README and CONTRIBUTING docs (#682) @robertmaynard
+- Enable tag generation for doxygen (#672) @ajschmidt8
+- Document that `managed_memory_resource` does not work with NVIDIA vGPU (#656) @harrism
+
+## New Features 🚀
+
+- Enabling/disabling logging after initialization (#678) @shwina
+- `cuda_async_memory_resource` built on `cudaMallocAsync` (#676) @harrism
+- Create labeler.yml (#669) @jolorunyomi
+- Expose the version string in C++ and Python (#666) @hcho3
+- Add a CUDA stream pool (#659) @harrism
+- Add a Stream class that wraps CuPy/Numba/CudaStream (#636) @shwina
+
+## Improvements 🛠️
+
+- Update stale GHA with exemptions &amp; new labels (#707) @mike-wendt
+- Add GHA to mark issues/prs as stale/rotten (#700) @Ethyling
+- Auto-label PRs based on their content (#691) @ajschmidt8
+- Prepare Changelog for Automation (#688) @ajschmidt8
+- Build.sh use cmake --build to drive build system invocation (#686) @robertmaynard
+- Fix failed automerge (#683) @harrism
+- Auto-label PRs based on their content (#681) @jolorunyomi
+- Build RMM tests/benchmarks with -Wall flag (#674) @trxcllnt
+- Remove DeviceBuffer synchronization on default stream (#650) @pentschev
+- Simplify `rmm::exec_policy` and refactor Thrust support (#647) @harrism
+
+# RMM 0.17.0 (10 Dec 2020)
 
 ## New Features
 
+- PR #609 Adds `polymorphic_allocator` and `stream_allocator_adaptor`
+- PR #596 Add `tracking_memory_resource_adaptor` to help catch memory leaks
+- PR #608 Add stream wrapper type
+- PR #632 Add RMM Python docs
+
 ## Improvements
 
-- PR #477 Just use `None` for `strides` in `DeviceBuffer`
+- PR #604 CMake target cleanup, formatting, linting
+- PR #599 Make the arena memory resource work better with the producer/consumer mode
+- PR #612 Drop old Python `device_array*` API
+- PR #603 Always test both legacy and per-thread default stream
+- PR #611 Add a note to the contribution guide about requiring 2 C++ reviewers
+- PR #615 Improve gpuCI Scripts
+- PR #627 Cleanup gpuCI Scripts
+- PR #635 Add Python docs build to gpuCI
 
 ## Bug Fixes
 
-# RMM 0.15.0 (Date TBD)
+- PR #592 Add `auto_flush` to `make_logging_adaptor`
+- PR #602 Fix `device_scalar` and its tests so that they use the correct CUDA stream
+- PR #621 Make `rmm::cuda_stream_default` a `constexpr`
+- PR #625 Use `librmm` conda artifact when building `rmm` conda package
+- PR #631 Force local conda artifact install
+- PR #634 Fix conda uploads
+- PR #639 Fix release script version updater based on CMake reformatting
+- PR #641 Fix adding "LANGUAGES" after version number in CMake in release script
+
+
+# RMM 0.16.0 (21 Oct 2020)
+
+## New Features
+
+- PR #529 Add debug logging and fix multithreaded replay benchmark
+- PR #560 Remove deprecated `get/set_default_resource` APIs
+- PR #543 Add an arena-based memory resource
+- PR #580 Install CMake config with RMM
+- PR #591 Allow the replay bench to simulate different GPU memory sizes
+- PR #594 Adding limiting memory resource adaptor
+
+## Improvements
+
+- PR #474 Use CMake find_package(CUDAToolkit)
+- PR #477 Just use `None` for `strides` in `DeviceBuffer`
+- PR #528 Add maximum_pool_size parameter to reinitialize API
+- PR #532 Merge free lists in pool_memory_resource to defragment before growing from upstream
+- PR #537 Add CMake option to disable deprecation warnings
+- PR #541 Refine CMakeLists.txt to make it easy to import by external projects
+- PR #538 Upgrade CUB and Thrust to the latest commits
+- PR #542 Pin conda spdlog versions to 1.7.0
+- PR #550 Remove CXX11 ABI handling from CMake
+- PR #578 Switch thrust to use the NVIDIA/thrust repo
+- PR #553 CMake cleanup
+- PR #556 By default, don't create a debug log file unless there are warnings/errors
+- PR #561 Remove CNMeM and make RMM header-only
+- PR #565 CMake: Simplify gtest/gbench handling
+- PR #566 CMake: use CPM for thirdparty dependencies
+- PR #568 Upgrade googletest to v1.10.0
+- PR #572 CMake: prefer locally installed thirdparty packages
+- PR #579 CMake: handle thrust via target
+- PR #581 Improve logging documentation
+- PR #585 Update ci/local/README.md
+- PR #587 Replaced `move` with `std::move`
+- PR #588 Use installed C++ RMM in python build
+- PR #601 Make maximum pool size truly optional (grow until failure)
+
+## Bug Fixes
+
+- PR #545 Fix build to support using `clang` as the host compiler
+- PR #534 Fix `pool_memory_resource` failure when init and max pool sizes are equal
+- PR #546 Remove CUDA driver linking and correct NVTX macro.
+- PR #569 Correct `device_scalar::set_value` to pass host value by reference to avoid copying from invalid value
+- PR #559 Fix `align_down` to only change unaligned values.
+- PR #577 Fix CMake `LOGGING_LEVEL` issue which caused verbose logging / performance regression.
+- PR #582 Fix handling of per-thread default stream when not compiled for PTDS
+- PR #590 Add missing `CODE_OF_CONDUCT.md`
+- PR #595 Fix pool_mr example in README.md
+
+
+# RMM 0.15.0 (26 Aug 2020)
 
 ## New Features
 
@@ -77,6 +191,7 @@
 - PR #511 Specify `--basetemp` for `py.test` run
 - PR #509 Fix missing : before __LINE__ in throw string of RMM_CUDA_TRY
 - PR #510 Fix segfault in pool_memory_resource when a CUDA stream is destroyed
+- PR #525 Patch Thrust to workaround `CUDA_CUB_RET_IF_FAIL` macro clearing CUDA errors
 
 
 # RMM 0.14.0 (03 Jun 2020)

@@ -30,8 +30,8 @@ namespace kinematics {
 
 class ShapeInfo {
 public:
-    ShapeInfo(std::shared_ptr<collision::Primitive> primitive = nullptr,
-              std::shared_ptr<geometry::TriangleMesh> mesh = nullptr)
+    ShapeInfo(const std::shared_ptr<collision::Primitive>& primitive = nullptr,
+              const std::shared_ptr<geometry::TriangleMesh>& mesh = nullptr)
     : primitive_(primitive), mesh_(mesh) {
         if (primitive_ && !mesh_) {
             mesh_ = collision::CreateTriangleMesh(*primitive_);
@@ -49,11 +49,15 @@ public:
     Link(const std::string& name,
          const ShapeInfo& collision,
          const ShapeInfo& visual)
-    : name_(name), collision_(collision), visual_(visual) {};
+    : name_(name), collisions_(1, collision), visuals_(1, visual) {};
+    Link(const std::string& name,
+         const std::vector<ShapeInfo>& collisions,
+         const std::vector<ShapeInfo>& visuals)
+    : name_(name), collisions_(collisions), visuals_(visuals) {};
 
     std::string name_;
-    ShapeInfo collision_;
-    ShapeInfo visual_;
+    std::vector<ShapeInfo> collisions_;
+    std::vector<ShapeInfo> visuals_;
 };
 
 class Joint {

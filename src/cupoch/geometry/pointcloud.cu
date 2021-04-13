@@ -88,7 +88,7 @@ struct gaussian_filter_functor {
         Eigen::Vector3f res_c = Eigen::Vector3f::Zero();
         for (int i = 0; i < num_max_search_points_; ++i) {
             const int j = idx * num_max_search_points_ + i;
-            const int idx_j = indices_[j];
+            const int idx_j = __ldg(&indices_[j]);
             if (idx_j >= 0) {
                 float weight = exp(-0.5 * dists_[j] / sigma2_);
                 res_p += weight * points_[idx_j];
@@ -122,6 +122,8 @@ struct pass_through_filter_functor {
 PointCloud::PointCloud()
     : GeometryBase3D(Geometry::GeometryType::PointCloud) {}
 PointCloud::PointCloud(const thrust::host_vector<Eigen::Vector3f> &points)
+    : GeometryBase3D(Geometry::GeometryType::PointCloud), points_(points) {}
+PointCloud::PointCloud(const std::vector<Eigen::Vector3f> &points)
     : GeometryBase3D(Geometry::GeometryType::PointCloud), points_(points) {}
 PointCloud::PointCloud(const utility::device_vector<Eigen::Vector3f> &points)
     : GeometryBase3D(Geometry::GeometryType::PointCloud), points_(points) {}
@@ -189,6 +191,10 @@ Eigen::Vector3f PointCloud::GetCenter() const { return ComputeCenter<3>(points_)
 
 AxisAlignedBoundingBox<3> PointCloud::GetAxisAlignedBoundingBox() const {
     return AxisAlignedBoundingBox<3>::CreateFromPoints(points_);
+}
+
+OrientedBoundingBox PointCloud::GetOrientedBoundingBox() const {
+    return OrientedBoundingBox::CreateFromPoints(points_);
 }
 
 PointCloud &PointCloud::Translate(const Eigen::Vector3f &translation,
@@ -286,18 +292,22 @@ PointCloud &PointCloud::RemoveNoneFinitePoints(bool remove_nan,
     size_t k = 0;
     if (!has_normal && !has_color) {
         remove_if_vectors(
+                utility::exec_policy(0)->on(0),
                 check_nan_functor<Eigen::Vector3f>(remove_nan, remove_infinite),
                 points_);
     } else if (has_normal && !has_color) {
-        remove_if_vectors(check_nan_functor<Eigen::Vector3f, Eigen::Vector3f>(
+        remove_if_vectors(utility::exec_policy(0)->on(0),
+                          check_nan_functor<Eigen::Vector3f, Eigen::Vector3f>(
                                   remove_nan, remove_infinite),
                           points_, normals_);
     } else if (!has_normal && has_color) {
-        remove_if_vectors(check_nan_functor<Eigen::Vector3f, Eigen::Vector3f>(
+        remove_if_vectors(utility::exec_policy(0)->on(0),
+                          check_nan_functor<Eigen::Vector3f, Eigen::Vector3f>(
                                   remove_nan, remove_infinite),
                           points_, colors_);
     } else {
         remove_if_vectors(
+                utility::exec_policy(0)->on(0),
                 check_nan_functor<Eigen::Vector3f, Eigen::Vector3f,
                                   Eigen::Vector3f>(remove_nan, remove_infinite),
                 points_, normals_, colors_);
@@ -364,16 +374,20 @@ std::shared_ptr<PointCloud> PointCloud::PassThroughFilter(int axis_no, float min
     bool has_normal = HasNormals();
     bool has_color = HasColors();
     if (has_normal && has_color) {
-        remove_if_vectors(pass_through_filter_functor<Eigen::Vector3f, Eigen::Vector3f>(axis_no, min_bound, max_bound),
+        remove_if_vectors(utility::exec_policy(0)->on(0),
+                          pass_through_filter_functor<Eigen::Vector3f, Eigen::Vector3f>(axis_no, min_bound, max_bound),
                           out->points_, out->normals_, out->colors_);
     } else if (has_normal) {
-        remove_if_vectors(pass_through_filter_functor<Eigen::Vector3f>(axis_no, min_bound, max_bound),
+        remove_if_vectors(utility::exec_policy(0)->on(0),
+                          pass_through_filter_functor<Eigen::Vector3f>(axis_no, min_bound, max_bound),
                           out->points_, out->normals_);
     } else if (has_color) {
-        remove_if_vectors(pass_through_filter_functor<Eigen::Vector3f>(axis_no, min_bound, max_bound),
+        remove_if_vectors(utility::exec_policy(0)->on(0),
+                          pass_through_filter_functor<Eigen::Vector3f>(axis_no, min_bound, max_bound),
                           out->points_, out->colors_);
     } else {
-        remove_if_vectors(pass_through_filter_functor<>(axis_no, min_bound, max_bound), out->points_);
+        remove_if_vectors(utility::exec_policy(0)->on(0),
+                          pass_through_filter_functor<>(axis_no, min_bound, max_bound), out->points_);
     }
     return out;
 }

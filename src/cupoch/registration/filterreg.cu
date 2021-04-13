@@ -44,6 +44,7 @@ FilterRegResult GetRegistrationResult(
         const Eigen::Matrix4f &transformation) {
     FilterRegResult result(transformation);
     result.likelihood_ = thrust::transform_reduce(
+            utility::exec_policy(0)->on(0),
             make_tuple_begin(model, target, weights),
             make_tuple_end(model, target, weights), weighted_residual_functor(),
             0.0f, thrust::plus<float>());
@@ -56,6 +57,10 @@ FilterRegResult RegistrationFilterReg(const geometry::PointCloud &source,
                                       const geometry::PointCloud &target,
                                       const Eigen::Matrix4f &init,
                                       const FilterRegOption &option) {
+    if (!source.HasPoints() || !target.HasPoints()) {
+        utility::LogError("Invalid source or target pointcloud.");
+        return FilterRegResult();
+    }
     Eigen::Matrix4f transform = init;
     geometry::PointCloud model = source;
     if (init.isIdentity() == false) {

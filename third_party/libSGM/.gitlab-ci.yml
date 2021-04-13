@@ -1,0 +1,74 @@
+image: adaskit/libsgm:0.1
+
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+
+stages:
+  - build
+  - test
+
+.build_template: &build_definition
+  stage: build
+  tags:
+    - docker
+  script:
+    - ldconfig
+    - cmake . -DBUILD_OPENCV_WRAPPER="ON" -DENABLE_SAMPLES=${build_samples} -DLIBSGM_SHARED=${build_shared} -DENABLE_TESTS=${build_tests}
+    - make
+
+build:samples_on:shared:
+  variables:
+    build_samples: "ON"
+    build_shared: "ON"
+    build_tests: "OFF"
+  <<: *build_definition
+
+build:samples_on:static:
+  variables:
+    build_samples: "ON"
+    build_shared: "OFF"
+    build_tests: "OFF"
+  <<: *build_definition
+
+build:samples_off:shared:
+  variables:
+    build_samples: "OFF"
+    build_shared: "ON"
+    build_tests: "OFF"
+  <<: *build_definition
+
+build:samples_off:static:
+  variables:
+    build_samples: "OFF"
+    build_shared: "OFF"
+    build_tests: "OFF"
+  <<: *build_definition
+
+build:with_opencv4:
+  image: adaskit/libsgm:0.3-opencv4
+  variables:
+    build_samples: "ON"
+    build_shared: "ON"
+    build_tests: "OFF"
+  <<: *build_definition
+
+build:test:
+  variables:
+    build_samples: "OFF"
+    build_shared: "OFF"
+    build_tests: "ON"
+  artifacts:
+    paths:
+      - ./test/sgm-test
+    expire_in: 1d
+  <<: *build_definition
+
+test:
+  stage: test
+  tags:
+    - nvidia-docker
+  script:
+    - ldconfig
+    - cuda-memcheck --leak-check full ./test/sgm-test
+  dependencies:
+    - build:test

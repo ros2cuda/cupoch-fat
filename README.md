@@ -10,10 +10,13 @@
 [![Downloads](https://pepy.tech/badge/cupoch)](https://pepy.tech/project/cupoch)
 [![xscode](https://img.shields.io/badge/Available%20on-xs%3Acode-blue?style=?style=plastic&logo=appveyor&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAMAAACdt4HsAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAAZQTFRF////////VXz1bAAAAAJ0Uk5T/wDltzBKAAAAlUlEQVR42uzXSwqAMAwE0Mn9L+3Ggtgkk35QwcnSJo9S+yGwM9DCooCbgn4YrJ4CIPUcQF7/XSBbx2TEz4sAZ2q1RAECBAiYBlCtvwN+KiYAlG7UDGj59MViT9hOwEqAhYCtAsUZvL6I6W8c2wcbd+LIWSCHSTeSAAECngN4xxIDSK9f4B9t377Wd7H5Nt7/Xz8eAgwAvesLRjYYPuUAAAAASUVORK5CYII=)](https://xscode.com/neka-nat/cupoch)
 
+<a href="https://www.buymeacoffee.com/nekanat" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" width="150" height="40" ></a>
+
 Cupoch is a library that implements rapid 3D data processing for robotics using CUDA.
 
 The goal of this library is to implement fast 3D data computation in robot systems.
 For example, it has applications in SLAM, collision avoidance, path planning and tracking.
+This repository is based on [Open3D](https://github.com/intel-isl/Open3D).
 
 ## Core Features
 
@@ -34,20 +37,20 @@ For example, it has applications in SLAM, collision avoidance, path planning and
         * [Real-time visual odometry from dense RGB-D images](https://ieeexplore.ieee.org/document/6130321)
         * [Robust Odometry Estimation for RGB-D Cameras](https://ieeexplore.ieee.org/document/6631104)
     * Kinect Fusion
+    * Stereo Matching
     * Collision checking
     * Occupancy grid
     * Distance transform
         * [Parallel Banding Algorithm to Compute Exact Distance Transform with the GPU](https://www.comp.nus.edu.sg/~tants/pba.html)
     * Path finding on graph structure
     * Path planning for collision avoidance
-* [Open3D](https://github.com/intel-isl/Open3D)-like API
 * Support memory pool and managed allocators
 * Interactive GUI (OpenGL CUDA interop and [imgui](https://github.com/ocornut/imgui))
 * Interoperability between cupoch 3D data and [DLPack](https://github.com/dmlc/dlpack)(Pytorch, Cupy,...) data structure
 
 ## Installation
 
-This software is tested under 64 Bit Ubuntu Linux 18.04 and CUDA 10.0/10.1/10.2.
+This software is tested under 64 Bit Ubuntu Linux 18.04 and CUDA 10.1/10.2.
 You can install cupoch using pip.
 
 ```
@@ -66,11 +69,11 @@ cmake ..; make install-pip-package -j
 
 ### Installation for Jetson Nano
 You can also install cupoch using pip on Jetson Nano.
-Please set up Jetson using [jetcard](https://github.com/NVIDIA-AI-IOT/jetcard) and install some packages with apt.
+Please set up Jetson using [jetpack](https://developer.nvidia.com/embedded/jetpack) and install some packages with apt.
 
 ```
 sudo apt-get install libxinerama-dev libxcursor-dev libglu1-mesa-dev
-pip3 install https://github.com/neka-nat/cupoch/releases/download/v0.1.7/cupoch-0.1.7.0-cp36-cp36m-linux_aarch64.whl
+pip3 install cupoch
 ```
 
 Or you can compile it from source.
@@ -119,6 +122,10 @@ python benchmarks.py
 ### Kinect fusion with intel realsense D435
 
 ![kf](https://raw.githubusercontent.com/neka-nat/cupoch/master/docs/_static/kinfu.gif)
+
+### Stereo matching
+
+![sm](https://raw.githubusercontent.com/neka-nat/cupoch/master/docs/_static/stereo.png)
 
 ### Fast Global Registration
 

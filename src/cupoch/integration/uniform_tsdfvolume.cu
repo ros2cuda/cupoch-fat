@@ -38,7 +38,7 @@ __device__ float GetTSDFAt(const Eigen::Vector3f &p,
     Eigen::Vector3i idx;
     Eigen::Vector3f p_grid = p / voxel_length - Eigen::Vector3f(0.5, 0.5, 0.5);
     for (int i = 0; i < 3; i++) {
-        idx(i) = (int)std::floor(p_grid(i));
+        idx(i) = (int)floorf(p_grid(i));
     }
     Eigen::Vector3f r = p_grid - idx.cast<float>();
 
@@ -695,7 +695,7 @@ UniformTSDFVolume::ExtractTriangleMesh() {
         int cidx = thrust::get<1>(x);
         return (cidx <= 0 || cidx >= 255);
     };
-    size_t n_result1 = remove_if_vectors(check_fn, keys, cube_indices);
+    size_t n_result1 = remove_if_vectors(utility::exec_policy(0)->on(0), check_fn, keys, cube_indices);
 
     utility::device_vector<float> fs(n_result1 * 8);
     utility::device_vector<Eigen::Vector3f> cs(n_result1 * 8);
@@ -740,7 +740,8 @@ UniformTSDFVolume::ExtractTriangleMesh() {
 
     // compute triangles
     utility::device_vector<int> vt_offsets(n_valid_cubes + 1, 0);
-    auto end2 = thrust::reduce_by_key(repeat_keys.begin(), repeat_keys.end(),
+    auto end2 = thrust::reduce_by_key(utility::exec_policy(0)->on(0),
+                                      repeat_keys.begin(), repeat_keys.end(),
                                       thrust::make_constant_iterator<int>(1),
                                       thrust::make_discard_iterator(),
                                       vt_offsets.begin());
