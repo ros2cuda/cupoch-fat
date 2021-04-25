@@ -26,6 +26,12 @@
         "install-sh": "shellscript",
         "*.pb.txt": "yaml",
         "*.cmake.in": "cmake",
+        "*.controller": "yaml",
+        "*.asmdef": "json",
+        "*.asset": "yaml",
+        "*.prefab": "yaml",
+        "*.mat": "yaml",
+        "*.tpp": "cpp",
         "core": "cpp",
         "adolcforward": "cpp",
         "kroneckerproduct": "cpp",
@@ -113,6 +119,8 @@
         "autodiff": "cpp",
         "bvh": "cpp",
         "eulerangles": "cpp",
-        "fft": "cpp"
+        "fft": "cpp",
+        "*.ipp": "cpp",
+        "platform.h": "c"
     }
 }

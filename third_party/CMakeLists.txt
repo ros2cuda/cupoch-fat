@@ -335,7 +335,6 @@ list(APPEND 3RDPARTY_LIBRARIES
 
 # Installation
 install(TARGETS ${FLANN_LIBRARIES}
-                ${fmt_LIBRARIES}
                 ${rmm_LIBRARIES}
                 ${liblzf_LIBRARIES}
                 ${rply_LIBRARIES}
