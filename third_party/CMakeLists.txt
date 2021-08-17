@@ -127,6 +127,7 @@ endif ()
 set(SPDLOG_MASTER_PROJECT OFF)
 add_subdirectory(spdlog)
 set(spdlog_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/spdlog/include)
+set(spdlog_LIBRARIES spdlog)
 
 # JSONCPP
 if ((APPLE) AND ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU"))
@@ -331,6 +332,7 @@ list(APPEND 3RDPARTY_LIBRARIES
      ${imgui_LIBRARIES}
      ${urdfdom_LIBRARIES}
      ${CUDA_LIBRARIES}
+     ${spdlog_LIBRARIES}
 )
 
 # Installation
@@ -339,6 +341,7 @@ install(TARGETS ${FLANN_LIBRARIES}
                 ${liblzf_LIBRARIES}
                 ${rply_LIBRARIES}
                 ${SGM_LIBRARIES}
+                ${spdlog_LIBRARIES}
         EXPORT ${PROJECT_NAME}3rdTargets
         RUNTIME DESTINATION ${CUPOCH_INSTALL_BIN_DIR}
         LIBRARY DESTINATION ${CUPOCH_INSTALL_LIB_DIR}
